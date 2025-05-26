@@ -105,6 +105,15 @@ public class TourGuideService {
 
 		return nearbyAttractions;
 	}
+	
+	public List<Attraction> getFiveNearAttractions(VisitedLocation visitedLocation) {
+	    List<Attraction> nearByAttractions = getNearByAttractions(visitedLocation);
+	    List<Attraction> fiveNearAttractions = nearByAttractions.stream()
+	            .limit(5)
+	            .collect(Collectors.toList());
+	    return fiveNearAttractions;
+	}
+
 
 	private void addShutDownHook() {
 		Runtime.getRuntime().addShutdownHook(new Thread() {

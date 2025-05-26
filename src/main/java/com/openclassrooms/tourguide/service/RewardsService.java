@@ -1,6 +1,9 @@
 package com.openclassrooms.tourguide.service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -37,19 +40,35 @@ public class RewardsService {
 	}
 	
 	public void calculateRewards(User user) {
-		List<VisitedLocation> userLocations = user.getVisitedLocations();
-		List<Attraction> attractions = gpsUtil.getAttractions();
-		
-		for(VisitedLocation visitedLocation : userLocations) {
-			for(Attraction attraction : attractions) {
-				if(user.getUserRewards().stream().filter(r -> r.attraction.attractionName.equals(attraction.attractionName)).count() == 0) {
-					if(nearAttraction(visitedLocation, attraction)) {
-						user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)));
-					}
-				}
-			}
-		}
+
+	    // 1) Snapshot thread-safe des lieux visités
+	    List<VisitedLocation> userLocationsSnapshot =
+	            new ArrayList<>(user.getVisitedLocations());
+
+	    // 2) Snapshot sous forme de Set des attractions déjà récompensées
+	    Set<String> rewardedAttractionNames = user.getUserRewards().stream()
+	            .map(r -> r.attraction.attractionName)
+	            .collect(Collectors.toSet());
+
+	    // 3) Parcours sans risque de modification concurrente
+	    for (VisitedLocation visitedLocation : userLocationsSnapshot) {
+	        for (Attraction attraction : gpsUtil.getAttractions()) {
+	            if (!rewardedAttractionNames.contains(attraction.attractionName)
+	                    && nearAttraction(visitedLocation, attraction)) {
+
+	                user.addUserReward(new UserReward(
+	                        visitedLocation,
+	                        attraction,
+	                        getRewardPoints(attraction, user)
+	                ));
+	                // on met à jour le Set pour éviter les doublons
+	                rewardedAttractionNames.add(attraction.attractionName);
+	            }
+	        }
+	    }
 	}
+
+
 	
 	public boolean isWithinAttractionProximity(Attraction attraction, Location location) {
 		return getDistance(attraction, location) > attractionProximityRange ? false : true;
