@@ -39,18 +39,15 @@ public class RewardsService {
 		proximityBuffer = defaultProximityBuffer;
 	}
 	
+	//méthode modifiée pour le test nearAllAttractions
 	public void calculateRewards(User user) {
-
-	    // 1) Snapshot thread-safe des lieux visités
 	    List<VisitedLocation> userLocationsSnapshot =
 	            new ArrayList<>(user.getVisitedLocations());
 
-	    // 2) Snapshot sous forme de Set des attractions déjà récompensées
 	    Set<String> rewardedAttractionNames = user.getUserRewards().stream()
 	            .map(r -> r.attraction.attractionName)
 	            .collect(Collectors.toSet());
 
-	    // 3) Parcours sans risque de modification concurrente
 	    for (VisitedLocation visitedLocation : userLocationsSnapshot) {
 	        for (Attraction attraction : gpsUtil.getAttractions()) {
 	            if (!rewardedAttractionNames.contains(attraction.attractionName)
@@ -61,7 +58,6 @@ public class RewardsService {
 	                        attraction,
 	                        getRewardPoints(attraction, user)
 	                ));
-	                // on met à jour le Set pour éviter les doublons
 	                rewardedAttractionNames.add(attraction.attractionName);
 	            }
 	        }
