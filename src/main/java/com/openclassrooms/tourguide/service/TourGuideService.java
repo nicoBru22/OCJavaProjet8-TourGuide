@@ -109,9 +109,9 @@ public class TourGuideService {
 	    
 	    // 3. Ensuite, on lance le calcul des récompenses de façon asynchrone et on attend sa fin avant de retourner le résultat
 	    CompletableFuture<VisitedLocation> result = visitedLocationToAdd.thenCompose(visitedLocation ->
-	        CompletableFuture.runAsync(() -> rewardsService.calculateRewards(user), executorService)
-	            .thenApply(v -> visitedLocation)
-	    );
+	        rewardsService.calculateRewardsAsync(user)  // méthode déjà asynchrone qui renvoie CompletableFuture<Void>
+	        .thenApply(v -> visitedLocation)         // on retourne visitedLocation après calcul des récompenses
+		);
 	    
 	    return result;
 	}

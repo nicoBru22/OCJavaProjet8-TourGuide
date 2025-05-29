@@ -1,11 +1,11 @@
 package com.openclassrooms.tourguide.service;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -43,20 +43,42 @@ public class RewardsService {
 	}
 	
 	//méthode modifiée pour le test nearAllAttractions
-	public void calculateRewards(User user) {
-		List<VisitedLocation> userLocations = user.getVisitedLocations();
-		List<Attraction> attractions = gpsUtil.getAttractions();
-		
-		for(VisitedLocation visitedLocation : userLocations) {
-			for(Attraction attraction : attractions) {
-				if(user.getUserRewards().stream().filter(r -> r.attraction.attractionName.equals(attraction.attractionName)).count() == 0) {
-					if(nearAttraction(visitedLocation, attraction)) {
-						user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)));
-					}
-				}
-			}
-		}
+	public CompletableFuture<Void> calculateRewardsAsync(User user) {
+	    // Étape 1 : lancer la recherche des attractions proches dans un thread du pool
+	    CompletableFuture<Set<Attraction>> nearbyAttractionsFuture = CompletableFuture.supplyAsync(() -> {
+	        List<VisitedLocation> userLocations = user.getVisitedLocations();
+	        List<Attraction> attractions = gpsUtil.getAttractions();
+
+	        Set<Attraction> nearbyAttractions = new HashSet<>();
+	        for (VisitedLocation visitedLocation : userLocations) {
+	            for (Attraction attraction : attractions) {
+	                if (nearAttraction(visitedLocation, attraction)) {
+	                    nearbyAttractions.add(attraction);
+	                }
+	            }
+	        }
+	        return nearbyAttractions;
+	    }, executorService);
+
+	    // Étape 2 : quand la recherche est terminée, ajouter les récompenses (avec synchronisation)
+	    CompletableFuture<Void> rewardsAddedFuture = nearbyAttractionsFuture.thenAcceptAsync(nearbyAttractions -> {
+	        synchronized (user.getUserRewards()) {
+	            for (Attraction attraction : nearbyAttractions) {
+	                boolean alreadyRewarded = user.getUserRewards().stream()
+	                    .anyMatch(r -> r.attraction.attractionName.equals(attraction.attractionName));
+	                if (!alreadyRewarded) {
+	                    VisitedLocation location = user.getVisitedLocations().get(0);
+	                    user.addUserReward(new UserReward(location, attraction, getRewardPoints(attraction, user)));
+	                }
+	            }
+	        }
+	    }, executorService);
+
+	    // Étape 3 : retourner la CompletableFuture finale
+	    return rewardsAddedFuture;
 	}
+
+
 
 
 	
