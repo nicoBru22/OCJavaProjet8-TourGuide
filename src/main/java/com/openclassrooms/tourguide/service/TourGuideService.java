@@ -42,7 +42,7 @@ public class TourGuideService {
 	private final TripPricer tripPricer = new TripPricer();
 	public final Tracker tracker;
 	boolean testMode = true;
-	private final ExecutorService executorService = Executors.newFixedThreadPool(20);
+	private final ExecutorService executorService = Executors.newFixedThreadPool(100);
 
 	public TourGuideService(GpsUtil gpsUtil, RewardsService rewardsService) {
 		this.gpsUtil = gpsUtil;

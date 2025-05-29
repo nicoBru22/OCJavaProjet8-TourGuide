@@ -27,7 +27,7 @@ public class RewardsService {
 	private int attractionProximityRange = 200;
 	private final GpsUtil gpsUtil;
 	private final RewardCentral rewardsCentral;
-	private final ExecutorService executorService = Executors.newFixedThreadPool(20);
+	private final ExecutorService executorService = Executors.newFixedThreadPool(100);
 	
 	public RewardsService(GpsUtil gpsUtil, RewardCentral rewardCentral) {
 		this.gpsUtil = gpsUtil;
@@ -42,13 +42,20 @@ public class RewardsService {
 		proximityBuffer = defaultProximityBuffer;
 	}
 	
-	// Étape 1 : récupérer les attractions proches de façon asynchrone
 	public CompletableFuture<Set<Attraction>> findNearbyAttractionsAsync(User user) {
-	    return CompletableFuture.supplyAsync(() -> {
+	    // Étape 1 : Exécuter la recherche des attractions proches en tâche de fond via executorService
+	    CompletableFuture<Set<Attraction>> futureNearbyAttractions = CompletableFuture.supplyAsync(() -> {
+	        
+	        // Récupérer les lieux visités par l'utilisateur
 	        List<VisitedLocation> userLocations = user.getVisitedLocations();
+	        
+	        // Récupérer la liste de toutes les attractions disponibles
 	        List<Attraction> attractions = gpsUtil.getAttractions();
 
+	        // Créer un ensemble pour stocker les attractions proches
 	        Set<Attraction> nearbyAttractions = new HashSet<>();
+
+	        // Parcourir chaque lieu visité et chaque attraction pour vérifier s'ils sont proches
 	        for (VisitedLocation visitedLocation : userLocations) {
 	            for (Attraction attraction : attractions) {
 	                if (nearAttraction(visitedLocation, attraction)) {
@@ -56,9 +63,16 @@ public class RewardsService {
 	                }
 	            }
 	        }
+
+	        // Retourner les attractions proches trouvées
 	        return nearbyAttractions;
-	    }, executorService);
+
+	    }, executorService); // Utiliser un thread du pool pour exécuter cette tâche
+
+	    // Étape 2 : Retourner le CompletableFuture résultant
+	    return futureNearbyAttractions;
 	}
+
 
 	// Étape 2 : ajouter les récompenses (peut être synchrone ou async)
 	public void addRewards(User user, Set<Attraction> nearbyAttractions) {
@@ -75,9 +89,19 @@ public class RewardsService {
 	}
 
 	public CompletableFuture<Void> calculateRewardsAsync(User user) {
-	    return findNearbyAttractionsAsync(user)
-	        .thenAcceptAsync(nearbyAttractions -> addRewards(user, nearbyAttractions), executorService);
+	    // Étape 1 : Trouver les attractions proches de l'utilisateur (opération asynchrone)
+	    CompletableFuture<Set<Attraction>> nearbyAttractionsFuture = findNearbyAttractionsAsync(user);
+
+	    // Étape 2 : Une fois qu'on a les attractions proches, on ajoute les récompenses (aussi de façon asynchrone)
+	    CompletableFuture<Void> addRewardsFuture = nearbyAttractionsFuture.thenAcceptAsync(
+	        nearbyAttractions -> addRewards(user, nearbyAttractions),
+	        executorService
+	    );
+
+	    // Étape 3 : Retourner la future qui complétera l'opération une fois les récompenses ajoutées
+	    return addRewardsFuture;
 	}
+
 
 
 
