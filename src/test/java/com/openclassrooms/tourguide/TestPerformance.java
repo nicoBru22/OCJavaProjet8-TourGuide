@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.time.StopWatch;
@@ -46,12 +48,12 @@ public class TestPerformance {
 	 */
 
 	@Test
-	public void highVolumeTrackLocation() {
+	public void highVolumeTrackLocation() throws InterruptedException, ExecutionException {
 		GpsUtil gpsUtil = new GpsUtil();
 		RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());
 		// Users should be incremented up to 100,000, and test finishes within 15
 		// minutes
-		InternalTestHelper.setInternalUserNumber(100);
+		InternalTestHelper.setInternalUserNumber(10000);
 		TourGuideService tourGuideService = new TourGuideService(gpsUtil, rewardsService);
 
 		List<User> allUsers = new ArrayList<>();
@@ -59,9 +61,17 @@ public class TestPerformance {
 
 		StopWatch stopWatch = new StopWatch();
 		stopWatch.start();
-		for (User user : allUsers) {
-			tourGuideService.trackUserLocation(user);
-		}
+		
+	    // Collecter tous les CompletableFuture
+	    List<CompletableFuture<VisitedLocation>> futures = new ArrayList<>();
+	    for (User user : allUsers) {
+	        CompletableFuture<VisitedLocation> future = tourGuideService.trackUserLocation(user);
+	        futures.add(future);
+	    }
+
+	    // Attendre que tous les CompletableFuture soient terminés
+	    CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get();
+	    
 		stopWatch.stop();
 		tourGuideService.tracker.stopTracking();
 

@@ -42,10 +42,9 @@ public class RewardsService {
 		proximityBuffer = defaultProximityBuffer;
 	}
 	
-	//méthode modifiée pour le test nearAllAttractions
-	public CompletableFuture<Void> calculateRewardsAsync(User user) {
-	    // Étape 1 : lancer la recherche des attractions proches dans un thread du pool
-	    CompletableFuture<Set<Attraction>> nearbyAttractionsFuture = CompletableFuture.supplyAsync(() -> {
+	// Étape 1 : récupérer les attractions proches de façon asynchrone
+	public CompletableFuture<Set<Attraction>> findNearbyAttractionsAsync(User user) {
+	    return CompletableFuture.supplyAsync(() -> {
 	        List<VisitedLocation> userLocations = user.getVisitedLocations();
 	        List<Attraction> attractions = gpsUtil.getAttractions();
 
@@ -59,23 +58,25 @@ public class RewardsService {
 	        }
 	        return nearbyAttractions;
 	    }, executorService);
+	}
 
-	    // Étape 2 : quand la recherche est terminée, ajouter les récompenses (avec synchronisation)
-	    CompletableFuture<Void> rewardsAddedFuture = nearbyAttractionsFuture.thenAcceptAsync(nearbyAttractions -> {
-	        synchronized (user.getUserRewards()) {
-	            for (Attraction attraction : nearbyAttractions) {
-	                boolean alreadyRewarded = user.getUserRewards().stream()
-	                    .anyMatch(r -> r.attraction.attractionName.equals(attraction.attractionName));
-	                if (!alreadyRewarded) {
-	                    VisitedLocation location = user.getVisitedLocations().get(0);
-	                    user.addUserReward(new UserReward(location, attraction, getRewardPoints(attraction, user)));
-	                }
+	// Étape 2 : ajouter les récompenses (peut être synchrone ou async)
+	public void addRewards(User user, Set<Attraction> nearbyAttractions) {
+	    synchronized (user.getUserRewards()) {
+	        for (Attraction attraction : nearbyAttractions) {
+	            boolean alreadyRewarded = user.getUserRewards().stream()
+	                .anyMatch(r -> r.attraction.attractionName.equals(attraction.attractionName));
+	            if (!alreadyRewarded) {
+	                VisitedLocation location = user.getVisitedLocations().get(0);
+	                user.addUserReward(new UserReward(location, attraction, getRewardPoints(attraction, user)));
 	            }
 	        }
-	    }, executorService);
+	    }
+	}
 
-	    // Étape 3 : retourner la CompletableFuture finale
-	    return rewardsAddedFuture;
+	public CompletableFuture<Void> calculateRewardsAsync(User user) {
+	    return findNearbyAttractionsAsync(user)
+	        .thenAcceptAsync(nearbyAttractions -> addRewards(user, nearbyAttractions), executorService);
 	}
 
 
