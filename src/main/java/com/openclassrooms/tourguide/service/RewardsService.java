@@ -3,6 +3,8 @@ package com.openclassrooms.tourguide.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ public class RewardsService {
 	private int attractionProximityRange = 200;
 	private final GpsUtil gpsUtil;
 	private final RewardCentral rewardsCentral;
+	private final ExecutorService executorService = Executors.newFixedThreadPool(20);
 	
 	public RewardsService(GpsUtil gpsUtil, RewardCentral rewardCentral) {
 		this.gpsUtil = gpsUtil;
@@ -41,27 +44,18 @@ public class RewardsService {
 	
 	//méthode modifiée pour le test nearAllAttractions
 	public void calculateRewards(User user) {
-	    List<VisitedLocation> userLocationsSnapshot =
-	            new ArrayList<>(user.getVisitedLocations());
-
-	    Set<String> rewardedAttractionNames = user.getUserRewards().stream()
-	            .map(r -> r.attraction.attractionName)
-	            .collect(Collectors.toSet());
-
-	    for (VisitedLocation visitedLocation : userLocationsSnapshot) {
-	        for (Attraction attraction : gpsUtil.getAttractions()) {
-	            if (!rewardedAttractionNames.contains(attraction.attractionName)
-	                    && nearAttraction(visitedLocation, attraction)) {
-
-	                user.addUserReward(new UserReward(
-	                        visitedLocation,
-	                        attraction,
-	                        getRewardPoints(attraction, user)
-	                ));
-	                rewardedAttractionNames.add(attraction.attractionName);
-	            }
-	        }
-	    }
+		List<VisitedLocation> userLocations = user.getVisitedLocations();
+		List<Attraction> attractions = gpsUtil.getAttractions();
+		
+		for(VisitedLocation visitedLocation : userLocations) {
+			for(Attraction attraction : attractions) {
+				if(user.getUserRewards().stream().filter(r -> r.attraction.attractionName.equals(attraction.attractionName)).count() == 0) {
+					if(nearAttraction(visitedLocation, attraction)) {
+						user.addUserReward(new UserReward(visitedLocation, attraction, getRewardPoints(attraction, user)));
+					}
+				}
+			}
+		}
 	}
 
 

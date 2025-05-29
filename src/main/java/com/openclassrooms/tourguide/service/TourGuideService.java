@@ -15,6 +15,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -38,6 +42,7 @@ public class TourGuideService {
 	private final TripPricer tripPricer = new TripPricer();
 	public final Tracker tracker;
 	boolean testMode = true;
+	private final ExecutorService executorService = Executors.newFixedThreadPool(20);
 
 	public TourGuideService(GpsUtil gpsUtil, RewardsService rewardsService) {
 		this.gpsUtil = gpsUtil;
@@ -59,9 +64,9 @@ public class TourGuideService {
 		return user.getUserRewards();
 	}
 
-	public VisitedLocation getUserLocation(User user) {
+	public VisitedLocation getUserLocation(User user) throws InterruptedException, ExecutionException {
 		VisitedLocation visitedLocation = (user.getVisitedLocations().size() > 0) ? user.getLastVisitedLocation()
-				: trackUserLocation(user);
+				: trackUserLocation(user).get(); //get car c'est un completableFutur
 		return visitedLocation;
 	}
 
@@ -90,12 +95,27 @@ public class TourGuideService {
 		return providers;
 	}
 
-	public VisitedLocation trackUserLocation(User user) {
-		VisitedLocation visitedLocation = gpsUtil.getUserLocation(user.getUserId());
-		user.addToVisitedLocations(visitedLocation);
-		rewardsService.calculateRewards(user);
-		return visitedLocation;
+	public CompletableFuture<VisitedLocation> trackUserLocation(User user) {
+	    // 1. Récupérer la localisation de l'utilisateur de manière asynchrone
+	    CompletableFuture<VisitedLocation> futureVisitedLocation = CompletableFuture.supplyAsync(() -> {
+	        return gpsUtil.getUserLocation(user.getUserId());
+	    }, executorService);
+	    
+	    // 2. Dès qu'on a la localisation, on l'ajoute à l'historique utilisateur (opération rapide, synchrone)
+	    CompletableFuture<VisitedLocation> visitedLocationToAdd = futureVisitedLocation.thenApply(visitedLocation -> {
+	        user.addToVisitedLocations(visitedLocation);
+	        return visitedLocation;
+	    });
+	    
+	    // 3. Ensuite, on lance le calcul des récompenses de façon asynchrone et on attend sa fin avant de retourner le résultat
+	    CompletableFuture<VisitedLocation> result = visitedLocationToAdd.thenCompose(visitedLocation ->
+	        CompletableFuture.runAsync(() -> rewardsService.calculateRewards(user), executorService)
+	            .thenApply(v -> visitedLocation)
+	    );
+	    
+	    return result;
 	}
+
 
 	public List<Attraction> getNearByAttractions(VisitedLocation visitedLocation) {
 	    return gpsUtil.getAttractions().stream()
