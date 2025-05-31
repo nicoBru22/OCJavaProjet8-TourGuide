@@ -1,6 +1,7 @@
 /home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/src/main/java/com/openclassrooms/tourguide/TourguideApplication.java
 /home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/src/main/java/com/openclassrooms/tourguide/tracker/Tracker.java
 /home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/src/main/java/com/openclassrooms/tourguide/configuration/AsyncConfig.java
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/src/main/java/com/openclassrooms/tourguide/helper/InternalTestUserInitializer.java
 /home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/src/main/java/com/openclassrooms/tourguide/TourGuideController.java
 /home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/src/main/java/com/openclassrooms/tourguide/service/TourGuideService.java
 /home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/src/main/java/com/openclassrooms/tourguide/user/UserPreferences.java
