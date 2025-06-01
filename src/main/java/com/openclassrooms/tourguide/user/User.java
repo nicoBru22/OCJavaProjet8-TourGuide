@@ -101,16 +101,19 @@ public class User {
     }
     
     /**
-     * Ajoute une récompense à la liste des récompenses de l'utilisateur
-     * uniquement si elle n'existe pas déjà pour la même attraction.
-     * 
-     * @param userReward Récompense à ajouter
+     * Ajoute une récompense utilisateur à la liste des récompenses,
+     * uniquement si une récompense avec la même attraction n'existe pas déjà.
+     *
+     * @param userReward La récompense utilisateur à ajouter.
      */
     public void addUserReward(UserReward userReward) {
-        if(userRewards.stream().filter(r -> !r.attraction.attractionName.equals(userReward.attraction)).count() == 0) {
+        boolean alreadyExists = userRewards.stream()
+            .anyMatch(r -> r.attraction.attractionName.equals(userReward.attraction.attractionName));
+        if (!alreadyExists) {
             userRewards.add(userReward);
         }
     }
+
     
     /**
      * Récupère la dernière localisation visitée.
