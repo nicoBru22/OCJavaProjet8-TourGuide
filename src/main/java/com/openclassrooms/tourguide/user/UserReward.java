@@ -2,30 +2,41 @@ package com.openclassrooms.tourguide.user;
 
 import gpsUtil.location.Attraction;
 import gpsUtil.location.VisitedLocation;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
+/**
+ * Représente une récompense attribuée à un utilisateur,
+ * associant un lieu visité à une attraction et un nombre de points de récompense.
+ * <p>
+ * Cette classe possède deux constructeurs générés automatiquement :
+ * <ul>
+ *   <li>Un constructeur avec les champs finals {@code visitedLocation} et {@code attraction} (via {@link RequiredArgsConstructor})</li>
+ *   <li>Un constructeur avec tous les champs : {@code visitedLocation}, {@code attraction} et {@code rewardPoints} (via {@link AllArgsConstructor})</li>
+ * </ul>
+ * </p>
+ */
+@AllArgsConstructor
+@RequiredArgsConstructor
 public class UserReward {
 
-	public final VisitedLocation visitedLocation;
-	public final Attraction attraction;
-	private int rewardPoints;
-	
-	public UserReward(VisitedLocation visitedLocation, Attraction attraction, int rewardPoints) {
-		this.visitedLocation = visitedLocation;
-		this.attraction = attraction;
-		this.rewardPoints = rewardPoints;
-	}
-	
-	public UserReward(VisitedLocation visitedLocation, Attraction attraction) {
-		this.visitedLocation = visitedLocation;
-		this.attraction = attraction;
-	}
+    /**
+     * La localisation visitée par l'utilisateur.
+     */
+    public final VisitedLocation visitedLocation;
 
-	public void setRewardPoints(int rewardPoints) {
-		this.rewardPoints = rewardPoints;
-	}
-	
-	public int getRewardPoints() {
-		return rewardPoints;
-	}
-	
+    /**
+     * L'attraction associée à cette récompense.
+     */
+    public final Attraction attraction;
+
+    /**
+     * Le nombre de points de récompense attribués.
+     */
+    @Getter
+    @Setter
+    private int rewardPoints;
+
 }
