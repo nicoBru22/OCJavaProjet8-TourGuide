@@ -64,6 +64,11 @@
 			<artifactId>rewardCentral</artifactId>
 			<version>1.0.0</version>
 		</dependency>
+				<!-- https://mvnrepository.com/artifact/org.projectlombok/lombok -->
+		<dependency>
+		    <groupId>org.projectlombok</groupId>
+		    <artifactId>lombok</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

@@ -1,103 +1,124 @@
 package com.openclassrooms.tourguide.user;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
 import gpsUtil.location.VisitedLocation;
+import lombok.Getter;
+import lombok.Setter;
 import tripPricer.Provider;
 
+/**
+ * Représente un utilisateur dans le système TourGuide.
+ * 
+ * Cette classe stocke les informations personnelles de l'utilisateur, 
+ * ses préférences, ses localisations visitées, ses récompenses, et les offres de voyages.
+ */
+@Getter
 public class User {
-	private final UUID userId;
-	private final String userName;
-	private String phoneNumber;
-	private String emailAddress;
-	private Date latestLocationTimestamp;
-	private List<VisitedLocation> visitedLocations = new ArrayList<>();
-	private List<UserReward> userRewards = new ArrayList<>();
-	private UserPreferences userPreferences = new UserPreferences();
-	private List<Provider> tripDeals = new ArrayList<>();
-	
-	public User(UUID userId, String userName, String phoneNumber, String emailAddress) {
-		this.userId = userId;
-		this.userName = userName;
-		this.phoneNumber = phoneNumber;
-		this.emailAddress = emailAddress;
-	}
-	
-	public UUID getUserId() {
-		return userId;
-	}
-	
-	public String getUserName() {
-		return userName;
-	}
-	
-	public void setPhoneNumber(String phoneNumber) {
-		this.phoneNumber = phoneNumber;
-	}
-	
-	public String getPhoneNumber() {
-		return phoneNumber;
-	}
-
-	public void setEmailAddress(String emailAddress) {
-		this.emailAddress = emailAddress;
-	}
-	
-	public String getEmailAddress() {
-		return emailAddress;
-	}
-	
-	public void setLatestLocationTimestamp(Date latestLocationTimestamp) {
-		this.latestLocationTimestamp = latestLocationTimestamp;
-	}
-	
-	public Date getLatestLocationTimestamp() {
-		return latestLocationTimestamp;
-	}
-	
-	public void addToVisitedLocations(VisitedLocation visitedLocation) {
-		visitedLocations.add(visitedLocation);
-	}
-	
-	public List<VisitedLocation> getVisitedLocations() {
-		return visitedLocations;
-	}
-	
-	public void clearVisitedLocations() {
-		visitedLocations.clear();
-	}
-	
-	public void addUserReward(UserReward userReward) {
-		if(userRewards.stream().filter(r -> !r.attraction.attractionName.equals(userReward.attraction)).count() == 0) {
-			userRewards.add(userReward);
-		}
-	}
-	
-	public List<UserReward> getUserRewards() {
-		return userRewards;
-	}
-	
-	public UserPreferences getUserPreferences() {
-		return userPreferences;
-	}
-	
-	public void setUserPreferences(UserPreferences userPreferences) {
-		this.userPreferences = userPreferences;
-	}
-
-	public VisitedLocation getLastVisitedLocation() {
-		return visitedLocations.get(visitedLocations.size() - 1);
-	}
-	
-	public void setTripDeals(List<Provider> tripDeals) {
-		this.tripDeals = tripDeals;
-	}
-	
-	public List<Provider> getTripDeals() {
-		return tripDeals;
-	}
-
+    
+    /**
+     * Identifiant unique de l'utilisateur.
+     */
+    private final UUID userId;
+    
+    /**
+     * Nom d'utilisateur.
+     */
+    private final String userName;
+    
+    /**
+     * Numéro de téléphone de l'utilisateur.
+     */
+    @Setter
+    private String phoneNumber;
+    
+    /**
+     * Adresse email de l'utilisateur.
+     */
+    @Setter
+    private String emailAddress;
+    
+    /**
+     * Date et heure de la dernière mise à jour de la localisation de l'utilisateur.
+     */
+    @Setter
+    private LocalDateTime latestLocationTimestamp;
+    
+    /**
+     * Liste des localisations visitées par l'utilisateur.
+     */
+    private List<VisitedLocation> visitedLocations = new ArrayList<>();
+    
+    /**
+     * Liste des récompenses obtenues par l'utilisateur.
+     */
+    private List<UserReward> userRewards = new ArrayList<>();
+    
+    /**
+     * Préférences personnelles de l'utilisateur.
+     */
+    @Setter
+    private UserPreferences userPreferences = new UserPreferences();
+    
+    /**
+     * Liste des offres de voyages (trip deals) disponibles pour l'utilisateur.
+     */
+    @Setter
+    private List<Provider> tripDeals = new ArrayList<>();
+    
+    /**
+     * Constructeur principal.
+     * 
+     * @param userId Identifiant unique de l'utilisateur
+     * @param userName Nom d'utilisateur
+     * @param phoneNumber Numéro de téléphone
+     * @param emailAddress Adresse email
+     */
+    public User(UUID userId, String userName, String phoneNumber, String emailAddress) {
+        this.userId = userId;
+        this.userName = userName;
+        this.phoneNumber = phoneNumber;
+        this.emailAddress = emailAddress;
+    }
+    
+    /**
+     * Ajoute une nouvelle localisation visitée à la liste.
+     * 
+     * @param visitedLocation Localisation visitée à ajouter
+     */
+    public void addToVisitedLocations(VisitedLocation visitedLocation) {
+        visitedLocations.add(visitedLocation);
+    }
+    
+    /**
+     * Vide la liste des localisations visitées.
+     */
+    public void clearVisitedLocations() {
+        visitedLocations.clear();
+    }
+    
+    /**
+     * Ajoute une récompense à la liste des récompenses de l'utilisateur
+     * uniquement si elle n'existe pas déjà pour la même attraction.
+     * 
+     * @param userReward Récompense à ajouter
+     */
+    public void addUserReward(UserReward userReward) {
+        if(userRewards.stream().filter(r -> !r.attraction.attractionName.equals(userReward.attraction)).count() == 0) {
+            userRewards.add(userReward);
+        }
+    }
+    
+    /**
+     * Récupère la dernière localisation visitée.
+     * 
+     * @return La dernière localisation dans la liste des localisations visitées
+     * @throws IndexOutOfBoundsException si la liste est vide
+     */
+    public VisitedLocation getLastVisitedLocation() {
+        return visitedLocations.get(visitedLocations.size() - 1);
+    }
 }
