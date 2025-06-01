@@ -1,36 +1,43 @@
 package com.openclassrooms.tourguide;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import gpsUtil.location.Attraction;
-import gpsUtil.location.VisitedLocation;
 
 import com.openclassrooms.tourguide.service.TourGuideService;
 import com.openclassrooms.tourguide.user.User;
 import com.openclassrooms.tourguide.user.UserReward;
+
+import gpsUtil.location.Attraction;
+import gpsUtil.location.VisitedLocation;
 
 import tripPricer.Provider;
 
 @RestController
 public class TourGuideController {
 
+	private Logger logger = LogManager.getLogger();
+	
 	@Autowired
 	TourGuideService tourGuideService;
 	
-    @RequestMapping("/")
+    @GetMapping("/")
     public String index() {
         return "Greetings from TourGuide!";
     }
     
-    @RequestMapping("/getLocation") 
+    @GetMapping("/getLocation") 
     public VisitedLocation getLocation(@RequestParam String userName) throws InterruptedException, ExecutionException {
-    	return tourGuideService.getUserLocation(getUser(userName));
+    	User actualUser = tourGuideService.getUser(userName);
+    	VisitedLocation visitedLocation = tourGuideService.getUserLocation(actualUser);
+    	return visitedLocation;
     }
     
     //  TODO: Change this method to no longer return a List of Attractions.
@@ -42,30 +49,34 @@ public class TourGuideController {
         // The distance in miles between the user's location and each of the attractions.
         // The reward points for visiting each Attraction.
         //    Note: Attraction reward points can be gathered from RewardsCentral
-    @RequestMapping("/getNearbyAttractions") 
+    @GetMapping("/getNearbyAttractions") 
     public List<Attraction> getNearbyAttractions(@RequestParam String userName) throws InterruptedException, ExecutionException {
-    	VisitedLocation visitedLocation = tourGuideService.getUserLocation(getUser(userName));
-    	return tourGuideService.getNearByAttractions(visitedLocation);
+    	User actualUser = tourGuideService.getUser(userName);
+    	VisitedLocation visitedLocation = tourGuideService.getUserLocation(actualUser);
+    	List<Attraction> listAllNearAttraction = tourGuideService.getNearByAttractions(visitedLocation);
+    	return listAllNearAttraction;
     }
     
-    @RequestMapping("/getFiveNearbyAttractions") 
-    public List<Attraction> getFiveNearbyAttractions(@RequestParam String userName) throws InterruptedException, ExecutionException {
-    	VisitedLocation visitedLocation = tourGuideService.getUserLocation(getUser(userName));
-    	return tourGuideService.getFiveNearAttractions(visitedLocation);
+    @GetMapping("/getFiveNearbyAttractions") 
+    public List<Map<String, Object>> getFiveNearbyAttractions(@RequestParam String userName) throws InterruptedException, ExecutionException {
+    	User actualUser = tourGuideService.getUser(userName);
+    	VisitedLocation visitedLocation = tourGuideService.getUserLocation(actualUser);
+    	List<Map<String, Object>> listFiveNearAttraction = tourGuideService.getFiveNearAttractions(visitedLocation);
+    	return listFiveNearAttraction;
     }
     
-    @RequestMapping("/getRewards") 
+    @GetMapping("/getRewards") 
     public List<UserReward> getRewards(@RequestParam String userName) {
-    	return tourGuideService.getUserRewards(getUser(userName));
+    	User actualUser = tourGuideService.getUser(userName);
+    	List<UserReward> listUserReward = tourGuideService.getUserRewards(actualUser);
+    	return listUserReward;
     }
        
-    @RequestMapping("/getTripDeals")
+    @GetMapping("/getTripDeals")
     public List<Provider> getTripDeals(@RequestParam String userName) {
-    	return tourGuideService.getTripDeals(getUser(userName));
-    }
-    
-    private User getUser(String userName) {
-    	return tourGuideService.getUser(userName);
+    	User actualUser = tourGuideService.getUser(userName);
+    	List<Provider> listProvider = tourGuideService.getTripDeals(actualUser);
+    	return listProvider;
     }
    
 

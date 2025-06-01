@@ -6,6 +6,7 @@ import com.openclassrooms.tourguide.tracker.Tracker;
 import com.openclassrooms.tourguide.user.User;
 import com.openclassrooms.tourguide.user.UserReward;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -17,8 +18,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 import gpsUtil.GpsUtil;
@@ -30,7 +31,7 @@ import tripPricer.TripPricer;
 
 @Service
 public class TourGuideService {
-	private Logger logger = LoggerFactory.getLogger(TourGuideService.class);
+	private static final Logger logger = LogManager.getLogger();
 	private final GpsUtil gpsUtil;
 	private final RewardsService rewardsService;
 	private final TripPricer tripPricer = new TripPricer();
@@ -38,12 +39,7 @@ public class TourGuideService {
 	boolean testMode = true;
 	private final ExecutorService executorService = Executors.newFixedThreadPool(100);
 	private static final String tripPricerApiKey = "test-server-api-key";
-
-	
-    // Nouveau champ pour stocker les utilisateurs internes
     private final Map<String, User> internalUserMap = new HashMap<>();
-
-    // Instance de la classe d'initialisation
     private final InternalTestUserInitializer internalTestUserInitializer = new InternalTestUserInitializer();
 
 	public TourGuideService(GpsUtil gpsUtil, RewardsService rewardsService) {
@@ -73,11 +69,14 @@ public class TourGuideService {
 	}
 
 	public User getUser(String userName) {
-		return internalUserMap.get(userName);
+		User User = internalUserMap.get(userName);
+		return User;
 	}
 
 	public List<User> getAllUsers() {
-		return internalUserMap.values().stream().collect(Collectors.toList());
+		List<User> userList = internalUserMap.values().stream()
+				.collect(Collectors.toList());
+		return userList;
 	}
 
 	public void addUser(User user) {
@@ -126,13 +125,49 @@ public class TourGuideService {
 	            .collect(Collectors.toList());
 	}
 	
-	public List<Attraction> getFiveNearAttractions(VisitedLocation visitedLocation) {
+	public List<Map<String, Object>> getFiveNearAttractions(VisitedLocation visitedLocation) {
+		double userLatitude = visitedLocation.location.latitude;
+		double userLongitude = visitedLocation.location.longitude;
 	    List<Attraction> nearByAttractions = getNearByAttractions(visitedLocation);
 	    List<Attraction> fiveNearAttractions = nearByAttractions.stream()
 	            .limit(5)
 	            .collect(Collectors.toList());
-	    return fiveNearAttractions;
+	 
+	            List<Map<String, Object>> result = new ArrayList<>();
+
+	            for (Attraction attraction : fiveNearAttractions) {
+
+	                Map<String, Object> attractionInfo = new HashMap<>();
+	                attractionInfo.put("attractionName", attraction.attractionName);
+	                attractionInfo.put("attractionLat", attraction.latitude);
+	                attractionInfo.put("attractionLong", attraction.longitude);
+	                attractionInfo.put("userLongitude", userLongitude);
+	                attractionInfo.put("userLatitude", userLatitude);
+	                double distanceKm = calculateDistanceKm(userLatitude, userLongitude, attraction.latitude, attraction.longitude);
+	                attractionInfo.put("distance", distanceKm);
+
+	                result.add(attractionInfo);
+	            }
+	            logger.info("Les 5 attractions proche : {}", result);
+	            return result;
 	}
+	
+	public static double calculateDistanceKm(double lat1, double lon1, double lat2, double lon2) {
+	    final int EARTH_RADIUS_KM = 6371; // rayon de la Terre en kilomètres
+
+	    double latDistance = Math.toRadians(lat2 - lat1);
+	    double lonDistance = Math.toRadians(lon2 - lon1);
+
+	    double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2) +
+	               Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+	               Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+
+	    double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+	    return EARTH_RADIUS_KM * c;
+	}
+
+
 
 
 	private void addShutDownHook() {
@@ -142,6 +177,8 @@ public class TourGuideService {
 			}
 		});
 	}
+	
+	
 
 
 

@@ -2,31 +2,42 @@
 
 import gpsUtil.location.Attraction;
 import gpsUtil.location.VisitedLocation;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 
+/**
+ * Représente une récompense attribuée à un utilisateur,
+ * associant un lieu visité à une attraction et un nombre de points de récompense.
+ * &lt;p&gt;
+ * Cette classe possède deux constructeurs générés automatiquement :
+ * &lt;ul&gt;
+ *   &lt;li&gt;Un constructeur avec les champs finals {@code visitedLocation} et {@code attraction} (via {@link RequiredArgsConstructor})&lt;/li&gt;
+ *   &lt;li&gt;Un constructeur avec tous les champs : {@code visitedLocation}, {@code attraction} et {@code rewardPoints} (via {@link AllArgsConstructor})&lt;/li&gt;
+ * &lt;/ul&gt;
+ * &lt;/p&gt;
+ */
+<span class="fc" id="L21">@AllArgsConstructor</span>
+<span class="nc" id="L22">@RequiredArgsConstructor</span>
 public class UserReward {
 
-	public final VisitedLocation visitedLocation;
-	public final Attraction attraction;
-	private int rewardPoints;
-	
-<span class="fc" id="L12">	public UserReward(VisitedLocation visitedLocation, Attraction attraction, int rewardPoints) {</span>
-<span class="fc" id="L13">		this.visitedLocation = visitedLocation;</span>
-<span class="fc" id="L14">		this.attraction = attraction;</span>
-<span class="fc" id="L15">		this.rewardPoints = rewardPoints;</span>
-<span class="fc" id="L16">	}</span>
-	
-<span class="nc" id="L18">	public UserReward(VisitedLocation visitedLocation, Attraction attraction) {</span>
-<span class="nc" id="L19">		this.visitedLocation = visitedLocation;</span>
-<span class="nc" id="L20">		this.attraction = attraction;</span>
-<span class="nc" id="L21">	}</span>
+    /**
+     * La localisation visitée par l'utilisateur.
+     */
+    public final VisitedLocation visitedLocation;
 
-	public void setRewardPoints(int rewardPoints) {
-<span class="nc" id="L24">		this.rewardPoints = rewardPoints;</span>
-<span class="nc" id="L25">	}</span>
-	
-	public int getRewardPoints() {
-<span class="nc" id="L28">		return rewardPoints;</span>
-	}
-	
+    /**
+     * L'attraction associée à cette récompense.
+     */
+    public final Attraction attraction;
+
+    /**
+     * Le nombre de points de récompense attribués.
+     */
+<span class="nc" id="L38">    @Getter</span>
+<span class="nc" id="L39">    @Setter</span>
+    private int rewardPoints;
+
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.10.202304240956</span></div></body></html>

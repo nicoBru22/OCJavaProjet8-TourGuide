@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="fr"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TourGuideController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">tourguide</a> &gt; <a href="index.source.html" class="el_package">com.openclassrooms.tourguide</a> &gt; <span class="el_source">TourGuideController.java</span></div><h1>TourGuideController.java</h1><pre class="source lang-java linenums">package com.openclassrooms.tourguide;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -18,19 +20,21 @@ import com.openclassrooms.tourguide.user.UserReward;
 import tripPricer.Provider;
 
 @RestController
-<span class="fc" id="L21">public class TourGuideController {</span>
+<span class="fc" id="L23">public class TourGuideController {</span>
 
 	@Autowired
 	TourGuideService tourGuideService;
 	
-    @RequestMapping(&quot;/&quot;)
+    @GetMapping(&quot;/&quot;)
     public String index() {
-<span class="nc" id="L28">        return &quot;Greetings from TourGuide!&quot;;</span>
+<span class="nc" id="L30">        return &quot;Greetings from TourGuide!&quot;;</span>
     }
     
-    @RequestMapping(&quot;/getLocation&quot;) 
+    @GetMapping(&quot;/getLocation&quot;) 
     public VisitedLocation getLocation(@RequestParam String userName) throws InterruptedException, ExecutionException {
-<span class="nc" id="L33">    	return tourGuideService.getUserLocation(getUser(userName));</span>
+<span class="nc" id="L35">    	User actualUser = tourGuideService.getUser(userName);</span>
+<span class="nc" id="L36">    	VisitedLocation visitedLocation = tourGuideService.getUserLocation(actualUser);</span>
+<span class="nc" id="L37">    	return visitedLocation;</span>
     }
     
     //  TODO: Change this method to no longer return a List of Attractions.
@@ -42,30 +46,34 @@ import tripPricer.Provider;
         // The distance in miles between the user's location and each of the attractions.
         // The reward points for visiting each Attraction.
         //    Note: Attraction reward points can be gathered from RewardsCentral
-    @RequestMapping(&quot;/getNearbyAttractions&quot;) 
+    @GetMapping(&quot;/getNearbyAttractions&quot;) 
     public List&lt;Attraction&gt; getNearbyAttractions(@RequestParam String userName) throws InterruptedException, ExecutionException {
-<span class="nc" id="L47">    	VisitedLocation visitedLocation = tourGuideService.getUserLocation(getUser(userName));</span>
-<span class="nc" id="L48">    	return tourGuideService.getNearByAttractions(visitedLocation);</span>
+<span class="nc" id="L51">    	User actualUser = tourGuideService.getUser(userName);</span>
+<span class="nc" id="L52">    	VisitedLocation visitedLocation = tourGuideService.getUserLocation(actualUser);</span>
+<span class="nc" id="L53">    	List&lt;Attraction&gt; listAllNearAttraction = tourGuideService.getNearByAttractions(visitedLocation);</span>
+<span class="nc" id="L54">    	return listAllNearAttraction;</span>
     }
     
-    @RequestMapping(&quot;/getFiveNearbyAttractions&quot;) 
-    public List&lt;Attraction&gt; getFiveNearbyAttractions(@RequestParam String userName) throws InterruptedException, ExecutionException {
-<span class="nc" id="L53">    	VisitedLocation visitedLocation = tourGuideService.getUserLocation(getUser(userName));</span>
-<span class="nc" id="L54">    	return tourGuideService.getFiveNearAttractions(visitedLocation);</span>
+    @GetMapping(&quot;/getFiveNearbyAttractions&quot;) 
+    public List&lt;Map&lt;String, Object&gt;&gt; getFiveNearbyAttractions(@RequestParam String userName) throws InterruptedException, ExecutionException {
+<span class="nc" id="L59">    	User actualUser = tourGuideService.getUser(userName);</span>
+<span class="nc" id="L60">    	VisitedLocation visitedLocation = tourGuideService.getUserLocation(actualUser);</span>
+<span class="nc" id="L61">    	List&lt;Map&lt;String, Object&gt;&gt; listFiveNearAttraction = tourGuideService.getFiveNearAttractions(visitedLocation);</span>
+<span class="nc" id="L62">    	return listFiveNearAttraction;</span>
     }
     
-    @RequestMapping(&quot;/getRewards&quot;) 
+    @GetMapping(&quot;/getRewards&quot;) 
     public List&lt;UserReward&gt; getRewards(@RequestParam String userName) {
-<span class="nc" id="L59">    	return tourGuideService.getUserRewards(getUser(userName));</span>
+<span class="nc" id="L67">    	User actualUser = tourGuideService.getUser(userName);</span>
+<span class="nc" id="L68">    	List&lt;UserReward&gt; listUserReward = tourGuideService.getUserRewards(actualUser);</span>
+<span class="nc" id="L69">    	return listUserReward;</span>
     }
        
-    @RequestMapping(&quot;/getTripDeals&quot;)
+    @GetMapping(&quot;/getTripDeals&quot;)
     public List&lt;Provider&gt; getTripDeals(@RequestParam String userName) {
-<span class="nc" id="L64">    	return tourGuideService.getTripDeals(getUser(userName));</span>
-    }
-    
-    private User getUser(String userName) {
-<span class="nc" id="L68">    	return tourGuideService.getUser(userName);</span>
+<span class="nc" id="L74">    	User actualUser = tourGuideService.getUser(userName);</span>
+<span class="nc" id="L75">    	List&lt;Provider&gt; listProvider = tourGuideService.getTripDeals(actualUser);</span>
+<span class="nc" id="L76">    	return listProvider;</span>
     }
    
 
