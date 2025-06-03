@@ -54,6 +54,7 @@ public class TourGuideController {
     	User actualUser = tourGuideService.getUser(userName);
     	VisitedLocation visitedLocation = tourGuideService.getUserLocation(actualUser);
     	List<Attraction> listAllNearAttraction = tourGuideService.getNearByAttractions(visitedLocation);
+    	logger.info("Récupération des attractions selon distance réussie.");
     	return listAllNearAttraction;
     }
     
