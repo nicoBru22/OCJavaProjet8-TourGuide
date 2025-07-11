@@ -42,6 +42,18 @@ public class RewardsService {
 		proximityBuffer = defaultProximityBuffer;
 	}
 	
+	public boolean isWithinAttractionProximity(Attraction attraction, Location location) {
+		return getDistance(attraction, location) > attractionProximityRange ? false : true;
+	}
+	
+	private boolean nearAttraction(VisitedLocation visitedLocation, Attraction attraction) {
+		return getDistance(attraction, visitedLocation.location) > proximityBuffer ? false : true;
+	}
+	
+	public int getRewardPoints(Attraction attraction, User user) {
+		return rewardsCentral.getAttractionRewardPoints(attraction.attractionId, user.getUserId());
+	}
+	
 	public CompletableFuture<Set<Attraction>> findNearbyAttractionsAsync(User user) {
 	    // Étape 1 : Exécuter la recherche des attractions proches en tâche de fond via executorService
 	    CompletableFuture<Set<Attraction>> futureNearbyAttractions = CompletableFuture.supplyAsync(() -> {
@@ -103,21 +115,6 @@ public class RewardsService {
 	}
 
 
-
-
-
-	
-	public boolean isWithinAttractionProximity(Attraction attraction, Location location) {
-		return getDistance(attraction, location) > attractionProximityRange ? false : true;
-	}
-	
-	private boolean nearAttraction(VisitedLocation visitedLocation, Attraction attraction) {
-		return getDistance(attraction, visitedLocation.location) > proximityBuffer ? false : true;
-	}
-	
-	private int getRewardPoints(Attraction attraction, User user) {
-		return rewardsCentral.getAttractionRewardPoints(attraction.attractionId, user.getUserId());
-	}
 	
 	public double getDistance(Location loc1, Location loc2) {
         double lat1 = Math.toRadians(loc1.latitude);

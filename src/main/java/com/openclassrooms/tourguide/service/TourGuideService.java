@@ -33,7 +33,6 @@ import tripPricer.TripPricer;
 public class TourGuideService {
 	
 	private static final Logger logger = LogManager.getLogger();
-	
 	private final GpsUtil gpsUtil;
 	private final RewardsService rewardsService;
 	private final TripPricer tripPricer = new TripPricer();
@@ -77,7 +76,9 @@ public class TourGuideService {
 	 * @return la liste des UserReward associés à l'utilisateur
 	 */
 	public List<UserReward> getUserRewards(User user) {
-		return user.getUserRewards();
+		List<UserReward> listUserReward = user.getUserRewards();
+		logger.info("La liste des récompenses de l'utilisateur : {}", listUserReward);
+		return listUserReward;
 	}
 
 	/**
@@ -105,11 +106,12 @@ public class TourGuideService {
 	 * Récupère un utilisateur à partir de son nom d'utilisateur.
 	 *
 	 * @param userName Le nom d'utilisateur recherché.
-	 * @return L'objet {@link User} correspondant au nom d'utilisateur, ou {@code null} si aucun utilisateur trouvé.
+	 * @return L'objet {@link user} correspondant au nom d'utilisateur, ou {@code null} si aucun utilisateur trouvé.
 	 */
 	public User getUser(String userName) {
-		User User = internalUserMap.get(userName);
-		return User;
+		User user = internalUserMap.get(userName);
+		logger.info("L'utilisateur : {}", user);
+		return user;
 	}
 
 	/**
@@ -120,6 +122,7 @@ public class TourGuideService {
 	public List<User> getAllUsers() {
 		List<User> userList = internalUserMap.values().stream()
 				.collect(Collectors.toList());
+		logger.info("la liste de tous le sutilisateurs : {}", userList);
 		return userList;
 	}
 
@@ -229,7 +232,7 @@ public class TourGuideService {
 	 * @param visitedLocation la localisation actuelle de l'utilisateur (latitude et longitude)
 	 * @return une liste de 5 maps contenant les données des attractions les plus proches
 	 */
-	public List<Map<String, Object>> getFiveNearAttractions(VisitedLocation visitedLocation) {
+	public List<Map<String, Object>> getFiveNearAttractions(VisitedLocation visitedLocation, User user) {
 		double userLatitude = visitedLocation.location.latitude;
 		double userLongitude = visitedLocation.location.longitude;
 	    List<Attraction> nearByAttractions = getNearByAttractions(visitedLocation);
@@ -247,8 +250,12 @@ public class TourGuideService {
 	                attractionInfo.put("attractionLong", attraction.longitude);
 	                attractionInfo.put("userLongitude", userLongitude);
 	                attractionInfo.put("userLatitude", userLatitude);
+	                
 	                double distanceMiles = rewardsService.getDistance(attraction, visitedLocation.location);
 	                attractionInfo.put("distanceMiles", distanceMiles);
+	                
+	                int rewardPoints = rewardsService.getRewardPoints(attraction, user);
+	                attractionInfo.put("rewardPoints", rewardPoints);
 
 	                result.add(attractionInfo);
 	            }

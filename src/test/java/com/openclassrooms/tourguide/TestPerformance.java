@@ -47,6 +47,7 @@ public class TestPerformance {
 	 * TimeUnit.MILLISECONDS.toSeconds(stopWatch.getTime()));
 	 */
 
+
 	@Test
 	public void highVolumeTrackLocationOneHundred() throws InterruptedException, ExecutionException {
 		GpsUtil gpsUtil = new GpsUtil();
@@ -104,7 +105,7 @@ public class TestPerformance {
 				+ TimeUnit.MILLISECONDS.toSeconds(stopWatch.getTime()) + " seconds.");
 		assertTrue(TimeUnit.MINUTES.toSeconds(15) >= TimeUnit.MILLISECONDS.toSeconds(stopWatch.getTime()));
 	}
-	
+
 	@Test
 	public void highVolumeTrackLocationTenThousand() throws InterruptedException, ExecutionException {
 		GpsUtil gpsUtil = new GpsUtil();

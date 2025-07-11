@@ -18,8 +18,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.springframework.stereotype.Service;
 
 import gpsUtil.GpsUtil;
@@ -31,124 +31,253 @@ import tripPricer.TripPricer;
 
 @Service
 public class TourGuideService {
-<span class="fc" id="L34">	private Logger logger = LoggerFactory.getLogger(TourGuideService.class);</span>
+	
+<span class="fc" id="L35">	private static final Logger logger = LogManager.getLogger();</span>
 	private final GpsUtil gpsUtil;
 	private final RewardsService rewardsService;
-<span class="fc" id="L37">	private final TripPricer tripPricer = new TripPricer();</span>
+<span class="fc" id="L38">	private final TripPricer tripPricer = new TripPricer();</span>
 	public final Tracker tracker;
-<span class="fc" id="L39">	boolean testMode = true;</span>
-<span class="fc" id="L40">	private final ExecutorService executorService = Executors.newFixedThreadPool(100);</span>
+<span class="fc" id="L40">	boolean testMode = true;</span>
+<span class="fc" id="L41">	private final ExecutorService executorService = Executors.newFixedThreadPool(100);</span>
 	private static final String tripPricerApiKey = &quot;test-server-api-key&quot;;
-<span class="fc" id="L42">    private final Map&lt;String, User&gt; internalUserMap = new HashMap&lt;&gt;();</span>
-<span class="fc" id="L43">    private final InternalTestUserInitializer internalTestUserInitializer = new InternalTestUserInitializer();</span>
+<span class="fc" id="L43">    private final Map&lt;String, User&gt; internalUserMap = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L44">    private final InternalTestUserInitializer internalTestUserInitializer = new InternalTestUserInitializer();</span>
 
-<span class="fc" id="L45">	public TourGuideService(GpsUtil gpsUtil, RewardsService rewardsService) {</span>
-<span class="fc" id="L46">		this.gpsUtil = gpsUtil;</span>
-<span class="fc" id="L47">		this.rewardsService = rewardsService;</span>
+    /**
+     * Constructeur de la classe TourGuideService.
+     * 
+     * Initialise les services GPS et de récompenses, configure la locale par défaut à US,
+     * initialise les utilisateurs de test si le mode test est activé,
+     * démarre le tracker et ajoute un hook d'arrêt pour stopper le tracking proprement à la fermeture de l'application.
+     * 
+     * @param gpsUtil le service GPS utilisé pour récupérer les attractions et localisations
+     * @param rewardsService le service de gestion des récompenses
+     */
+<span class="fc" id="L56">	public TourGuideService(GpsUtil gpsUtil, RewardsService rewardsService) {</span>
+<span class="fc" id="L57">		this.gpsUtil = gpsUtil;</span>
+<span class="fc" id="L58">		this.rewardsService = rewardsService;</span>
 		
-<span class="fc" id="L49">		Locale.setDefault(Locale.US);</span>
+<span class="fc" id="L60">		Locale.setDefault(Locale.US);</span>
 
-<span class="pc bpc" id="L51" title="1 of 2 branches missed.">		if (testMode) {</span>
-<span class="fc" id="L52">			logger.info(&quot;TestMode enabled&quot;);</span>
-<span class="fc" id="L53">			logger.debug(&quot;Initializing users&quot;);</span>
-<span class="fc" id="L54">			internalUserMap.putAll(internalTestUserInitializer.initializeUsers(InternalTestHelper.getInternalUserNumber()));</span>
-<span class="fc" id="L55">			logger.debug(&quot;Finished initializing users&quot;);</span>
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">		if (testMode) {</span>
+<span class="fc" id="L63">			logger.info(&quot;TestMode enabled&quot;);</span>
+<span class="fc" id="L64">			logger.debug(&quot;Initializing users&quot;);</span>
+<span class="fc" id="L65">			internalUserMap.putAll(internalTestUserInitializer.initializeUsers(InternalTestHelper.getInternalUserNumber()));</span>
+<span class="fc" id="L66">			logger.debug(&quot;Finished initializing users&quot;);</span>
 		}
-<span class="fc" id="L57">		tracker = new Tracker(this);</span>
-<span class="fc" id="L58">		addShutDownHook();</span>
-<span class="fc" id="L59">	}</span>
+<span class="fc" id="L68">		tracker = new Tracker(this);</span>
+<span class="fc" id="L69">		addShutDownHook();</span>
+<span class="fc" id="L70">	}</span>
 
+	/**
+	 * Retourne la liste des récompenses obtenues par l'utilisateur.
+	 *
+	 * @param user l'utilisateur dont on souhaite obtenir les récompenses
+	 * @return la liste des UserReward associés à l'utilisateur
+	 */
 	public List&lt;UserReward&gt; getUserRewards(User user) {
-<span class="fc" id="L62">		return user.getUserRewards();</span>
+<span class="fc" id="L79">		List&lt;UserReward&gt; listUserReward = user.getUserRewards();</span>
+<span class="fc" id="L80">		logger.info(&quot;La liste des récompenses de l'utilisateur : {}&quot;, listUserReward);</span>
+<span class="fc" id="L81">		return listUserReward;</span>
 	}
 
+	/**
+	 * Récupère la dernière localisation visitée de l'utilisateur.
+	 * Si l'utilisateur n'a pas encore de localisation enregistrée,
+	 * lance un suivi asynchrone pour récupérer la localisation actuelle et attend le résultat.
+	 *
+	 * @param user l'utilisateur dont on souhaite obtenir la localisation
+	 * @return la dernière VisitedLocation connue de l'utilisateur
+	 * @throws InterruptedException si l'attente du résultat asynchrone est interrompue
+	 * @throws ExecutionException si le calcul asynchrone échoue
+	 */
 	public VisitedLocation getUserLocation(User user) throws InterruptedException, ExecutionException {
-<span class="nc bnc" id="L66" title="All 2 branches missed.">		VisitedLocation visitedLocation = (user.getVisitedLocations().size() &gt; 0) ? user.getLastVisitedLocation()</span>
-<span class="nc" id="L67">				: trackUserLocation(user).get(); //get car c'est un completableFutur</span>
-<span class="nc" id="L68">		return visitedLocation;</span>
+	    VisitedLocation visitedLocation;
+<span class="nc bnc" id="L96" title="All 2 branches missed.">	    if (user.getVisitedLocations().size() &gt; 0) {</span>
+<span class="nc" id="L97">	        visitedLocation = user.getLastVisitedLocation();</span>
+	    } else {
+<span class="nc" id="L99">	        visitedLocation = trackUserLocation(user).get();</span>
+	    }
+<span class="nc" id="L101">	    return visitedLocation;</span>
 	}
 
+
+	/**
+	 * Récupère un utilisateur à partir de son nom d'utilisateur.
+	 *
+	 * @param userName Le nom d'utilisateur recherché.
+	 * @return L'objet {@link user} correspondant au nom d'utilisateur, ou {@code null} si aucun utilisateur trouvé.
+	 */
 	public User getUser(String userName) {
-<span class="fc" id="L72">		return internalUserMap.get(userName);</span>
+<span class="fc" id="L112">		User user = internalUserMap.get(userName);</span>
+<span class="fc" id="L113">		logger.info(&quot;L'utilisateur : {}&quot;, user);</span>
+<span class="fc" id="L114">		return user;</span>
 	}
 
+	/**
+	 * Récupère la liste de tous les utilisateurs présents dans la map interne.
+	 *
+	 * @return Une liste contenant tous les objets {@link User}.
+	 */
 	public List&lt;User&gt; getAllUsers() {
-<span class="fc" id="L76">		return internalUserMap.values().stream().collect(Collectors.toList());</span>
+<span class="fc" id="L123">		List&lt;User&gt; userList = internalUserMap.values().stream()</span>
+<span class="fc" id="L124">				.collect(Collectors.toList());</span>
+<span class="fc" id="L125">		logger.info(&quot;la liste de tous le sutilisateurs : {}&quot;, userList);</span>
+<span class="fc" id="L126">		return userList;</span>
 	}
 
+	/**
+	 * Ajoute un nouvel utilisateur à la map interne s'il n'existe pas déjà.
+	 *
+	 * @param user L'objet {@link User} à ajouter.
+	 */
 	public void addUser(User user) {
-<span class="pc bpc" id="L80" title="1 of 2 branches missed.">		if (!internalUserMap.containsKey(user.getUserName())) {</span>
-<span class="fc" id="L81">			internalUserMap.put(user.getUserName(), user);</span>
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">		if (!internalUserMap.containsKey(user.getUserName())) {</span>
+<span class="fc" id="L136">			internalUserMap.put(user.getUserName(), user);</span>
 		}
-<span class="fc" id="L83">	}</span>
+<span class="fc" id="L138">	}</span>
 
+	/**
+	 * Récupère une liste de propositions de voyages (deals) adaptées à l'utilisateur.
+	 * &lt;p&gt;
+	 * Cette méthode calcule d'abord le total des points de récompense accumulés par l'utilisateur,
+	 * puis utilise ces points ainsi que les préférences de l'utilisateur pour obtenir des offres
+	 * de voyage auprès du service {@code tripPricer}.
+	 * Les offres reçues sont ensuite associées à l'utilisateur via {@code user.setTripDeals}.
+	 * &lt;/p&gt;
+	 *
+	 * @param user L'utilisateur pour lequel on souhaite récupérer les offres de voyage.
+	 * @return Une liste de {@link Provider} représentant les offres de voyages disponibles.
+	 */
 	public List&lt;Provider&gt; getTripDeals(User user) {
-<span class="pc" id="L86">		int cumulatativeRewardPoints = user.getUserRewards().stream().mapToInt(i -&gt; i.getRewardPoints()).sum();</span>
+<span class="fc" id="L153">		int cumulatativeRewardPoints = user.getUserRewards().stream()</span>
+<span class="pc" id="L154">				.mapToInt(i -&gt; i.getRewardPoints())</span>
+<span class="fc" id="L155">				.sum();</span>
 		
-<span class="fc" id="L88">		List&lt;Provider&gt; providers = tripPricer.getPrice(tripPricerApiKey, user.getUserId(),</span>
-<span class="fc" id="L89">				user.getUserPreferences().getNumberOfAdults(), user.getUserPreferences().getNumberOfChildren(),</span>
-<span class="fc" id="L90">				user.getUserPreferences().getTripDuration(), cumulatativeRewardPoints);</span>
-<span class="fc" id="L91">		user.setTripDeals(providers);</span>
+<span class="fc" id="L157">		List&lt;Provider&gt; providers = tripPricer.getPrice(tripPricerApiKey, user.getUserId(),</span>
+<span class="fc" id="L158">				user.getUserPreferences().getNumberOfAdults(), user.getUserPreferences().getNumberOfChildren(),</span>
+<span class="fc" id="L159">				user.getUserPreferences().getTripDuration(), cumulatativeRewardPoints);</span>
+<span class="fc" id="L160">		user.setTripDeals(providers);</span>
 		
-<span class="fc" id="L93">		return providers;</span>
+<span class="fc" id="L162">		return providers;</span>
 	}
 
+	/**
+	 * Suit la localisation d'un utilisateur de façon asynchrone.
+	 * &lt;p&gt;
+	 * Cette méthode effectue les étapes suivantes de manière non bloquante :
+	 * &lt;ul&gt;
+	 *   &lt;li&gt;Récupère la localisation actuelle de l'utilisateur via {@code gpsUtil.getUserLocation}.&lt;/li&gt;
+	 *   &lt;li&gt;Ajoute cette localisation à la liste des lieux visités de l'utilisateur.&lt;/li&gt;
+	 *   &lt;li&gt;Calcule les récompenses associées à cette localisation en appelant
+	 *       {@code rewardsService.calculateRewardsAsync}.&lt;/li&gt;
+	 * &lt;/ul&gt;
+	 * &lt;/p&gt;
+	 * &lt;p&gt;
+	 * Le résultat retourné est un {@link CompletableFuture} contenant la localisation visitée
+	 * une fois toutes ces opérations terminées.
+	 * &lt;/p&gt;
+	 *
+	 * @param user L'utilisateur dont on veut suivre la localisation.
+	 * @return Un {@code CompletableFuture&lt;VisitedLocation&gt;} représentant la localisation suivie,
+	 *         complété après ajout aux lieux visités et calcul des récompenses.
+	 */
 	public CompletableFuture&lt;VisitedLocation&gt; trackUserLocation(User user) {
-	    // 1. Récupérer la localisation de l'utilisateur de manière asynchrone
-<span class="fc" id="L98">	    CompletableFuture&lt;VisitedLocation&gt; futureVisitedLocation = CompletableFuture.supplyAsync(() -&gt; {</span>
-<span class="fc" id="L99">	        return gpsUtil.getUserLocation(user.getUserId());</span>
+<span class="fc" id="L186">	    CompletableFuture&lt;VisitedLocation&gt; futureVisitedLocation = CompletableFuture.supplyAsync(() -&gt; {</span>
+<span class="fc" id="L187">	        return gpsUtil.getUserLocation(user.getUserId());</span>
 	    }, executorService);
 	    
-	    // 2. Dès qu'on a la localisation, on l'ajoute à l'historique utilisateur (opération rapide, synchrone)
-<span class="fc" id="L103">	    CompletableFuture&lt;VisitedLocation&gt; visitedLocationToAdd = futureVisitedLocation.thenApply(visitedLocation -&gt; {</span>
-<span class="fc" id="L104">	        user.addToVisitedLocations(visitedLocation);</span>
-<span class="fc" id="L105">	        return visitedLocation;</span>
+<span class="fc" id="L190">	    CompletableFuture&lt;VisitedLocation&gt; visitedLocationToAdd = futureVisitedLocation.thenApply(visitedLocation -&gt; {</span>
+<span class="fc" id="L191">	        user.addToVisitedLocations(visitedLocation);</span>
+<span class="fc" id="L192">	        return visitedLocation;</span>
 	    });
 	    
-	    // 3. Ensuite, on lance le calcul des récompenses de façon asynchrone et on attend sa fin avant de retourner le résultat
-<span class="fc" id="L109">	    CompletableFuture&lt;VisitedLocation&gt; result = visitedLocationToAdd.thenCompose(visitedLocation -&gt;</span>
-<span class="fc" id="L110">	        rewardsService.calculateRewardsAsync(user)  // méthode déjà asynchrone qui renvoie CompletableFuture&lt;Void&gt;</span>
-<span class="fc" id="L111">	        .thenApply(v -&gt; visitedLocation)         // on retourne visitedLocation après calcul des récompenses</span>
+<span class="fc" id="L195">	    CompletableFuture&lt;VisitedLocation&gt; result = visitedLocationToAdd.thenCompose(visitedLocation -&gt;</span>
+<span class="fc" id="L196">	        rewardsService.calculateRewardsAsync(user)  // méthode déjà asynchrone qui renvoie CompletableFuture&lt;Void&gt;</span>
+<span class="fc" id="L197">	        .thenApply(v -&gt; visitedLocation)         // on retourne visitedLocation après calcul des récompenses</span>
 		);
 	    
-<span class="fc" id="L114">	    return result;</span>
+<span class="fc" id="L200">	    return result;</span>
 	}
 
 
+	/**
+	 * Retourne la liste des attractions triées par distance croissante
+	 * par rapport à la position donnée d'un utilisateur.
+	 *
+	 * @param visitedLocation la localisation visitée de l'utilisateur (latitude et longitude)
+	 * @return une liste d'objets Attraction triée du plus proche au plus éloigné par rapport à la localisation de l'utilisateur
+	 */
 	public List&lt;Attraction&gt; getNearByAttractions(VisitedLocation visitedLocation) {
-<span class="fc" id="L119">	    return gpsUtil.getAttractions().stream()</span>
-<span class="fc" id="L120">	            .sorted(Comparator.comparingDouble(attraction -&gt; rewardsService.getDistance(attraction, visitedLocation.location)))</span>
-<span class="fc" id="L121">	            .limit(5)</span>
-<span class="fc" id="L122">	            .collect(Collectors.toList());</span>
+<span class="fc" id="L212">		List&lt;Attraction&gt; listAllAttraction = gpsUtil.getAttractions();</span>
+<span class="fc" id="L213">		List&lt;Attraction&gt; listNearByAttraction = listAllAttraction.parallelStream()</span>
+<span class="fc" id="L214">				.sorted(Comparator.comparingDouble(attraction -&gt; rewardsService.getDistance(attraction, visitedLocation.location)))</span>
+<span class="fc" id="L215">	            .collect(Collectors.toList());</span>
+<span class="fc" id="L216">		logger.info(&quot;Nombre d'attraction récupérée : {}&quot;, listNearByAttraction);</span>
+<span class="fc" id="L217">		return listNearByAttraction;</span>
 	}
 	
+	/**
+	 * Récupère les 5 attractions touristiques les plus proches de l'utilisateur,
+	 * en fonction de sa position actuelle, et retourne leurs informations dans une liste de maps.
+	 *
+	 * &lt;p&gt;Chaque élément de la liste retournée est une map contenant :
+	 * &lt;ul&gt;
+	 *   &lt;li&gt;le nom de l'attraction ({@code &quot;attractionName&quot;})&lt;/li&gt;
+	 *   &lt;li&gt;les coordonnées de l'attraction ({@code &quot;attractionLat&quot;}, {@code &quot;attractionLong&quot;})&lt;/li&gt;
+	 *   &lt;li&gt;les coordonnées de l'utilisateur ({@code &quot;userLatitude&quot;}, {@code &quot;userLongitude&quot;})&lt;/li&gt;
+	 *   &lt;li&gt;la distance entre l'utilisateur et l'attraction en miles ({@code &quot;distanceMiles&quot;})&lt;/li&gt;
+	 * &lt;/ul&gt;
+	 *
+	 * @param visitedLocation la localisation actuelle de l'utilisateur (latitude et longitude)
+	 * @return une liste de 5 maps contenant les données des attractions les plus proches
+	 */
 	public List&lt;Map&lt;String, Object&gt;&gt; getFiveNearAttractions(VisitedLocation visitedLocation) {
-<span class="nc" id="L126">	    List&lt;Attraction&gt; nearByAttractions = getNearByAttractions(visitedLocation);</span>
-<span class="nc" id="L127">	    List&lt;Attraction&gt; fiveNearAttractions = nearByAttractions.stream()</span>
-<span class="nc" id="L128">	            .limit(5)</span>
-<span class="nc" id="L129">	            .collect(Collectors.toList());</span>
+<span class="nc" id="L236">		double userLatitude = visitedLocation.location.latitude;</span>
+<span class="nc" id="L237">		double userLongitude = visitedLocation.location.longitude;</span>
+<span class="nc" id="L238">	    List&lt;Attraction&gt; nearByAttractions = getNearByAttractions(visitedLocation);</span>
+<span class="nc" id="L239">	    List&lt;Attraction&gt; fiveNearAttractions = nearByAttractions.stream()</span>
+<span class="nc" id="L240">	            .limit(5)</span>
+<span class="nc" id="L241">	            .collect(Collectors.toList());</span>
 	 
-<span class="nc" id="L131">	            List&lt;Map&lt;String, Object&gt;&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L243">	            List&lt;Map&lt;String, Object&gt;&gt; result = new ArrayList&lt;&gt;();</span>
 
-<span class="nc bnc" id="L133" title="All 2 branches missed.">	            for (Attraction attraction : fiveNearAttractions) {</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">	            for (Attraction attraction : fiveNearAttractions) {</span>
 
-<span class="nc" id="L135">	                Map&lt;String, Object&gt; attractionInfo = new HashMap&lt;&gt;();</span>
-<span class="nc" id="L136">	                attractionInfo.put(&quot;attractionName&quot;, attraction.attractionName);</span>
+<span class="nc" id="L247">	                Map&lt;String, Object&gt; attractionInfo = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L248">	                attractionInfo.put(&quot;attractionName&quot;, attraction.attractionName);</span>
+<span class="nc" id="L249">	                attractionInfo.put(&quot;attractionLat&quot;, attraction.latitude);</span>
+<span class="nc" id="L250">	                attractionInfo.put(&quot;attractionLong&quot;, attraction.longitude);</span>
+<span class="nc" id="L251">	                attractionInfo.put(&quot;userLongitude&quot;, userLongitude);</span>
+<span class="nc" id="L252">	                attractionInfo.put(&quot;userLatitude&quot;, userLatitude);</span>
+<span class="nc" id="L253">	                double distanceMiles = rewardsService.getDistance(attraction, visitedLocation.location);</span>
+<span class="nc" id="L254">	                attractionInfo.put(&quot;distanceMiles&quot;, distanceMiles);</span>
 
-<span class="nc" id="L138">	                result.add(attractionInfo);</span>
-<span class="nc" id="L139">	            }</span>
-
-<span class="nc" id="L141">	            return result;</span>
+<span class="nc" id="L256">	                result.add(attractionInfo);</span>
+<span class="nc" id="L257">	            }</span>
+<span class="nc" id="L258">        logger.info(&quot;Les 5 attractions proche : {}&quot;, result);</span>
+<span class="nc" id="L259">        return result;</span>
 	}
-
-
+	
+	/**
+	 * Ajoute un hook de shutdown à la JVM.
+	 * &lt;p&gt;
+	 * Ce hook exécute un thread lors de l'arrêt de la JVM afin d'appeler la méthode
+	 * {@code stopTracking()} sur l'objet {@code tracker}. Cela permet d'arrêter proprement
+	 * le suivi en cours avant que l'application ne se termine.
+	 * &lt;/p&gt;
+	 * &lt;p&gt;
+	 * Le hook sera déclenché lors d'un arrêt normal de l'application, comme un arrêt manuel,
+	 * un arrêt du système, ou une fermeture via un signal (ex : Ctrl+C).
+	 * &lt;/p&gt;
+	 */
 	private void addShutDownHook() {
-<span class="fc" id="L146">		Runtime.getRuntime().addShutdownHook(new Thread() {</span>
+<span class="fc" id="L275">		Runtime.getRuntime().addShutdownHook(new Thread() {</span>
 			public void run() {
-<span class="fc" id="L148">				tracker.stopTracking();</span>
-<span class="fc" id="L149">			}</span>
+<span class="fc" id="L277">				tracker.stopTracking();</span>
+<span class="fc" id="L278">			}</span>
 		});
-<span class="fc" id="L151">	}</span>
+<span class="fc" id="L280">	}</span>
 	
 	
 

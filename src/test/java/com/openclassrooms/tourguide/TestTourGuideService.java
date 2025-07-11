@@ -2,8 +2,12 @@ package com.openclassrooms.tourguide;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -111,6 +115,34 @@ public class TestTourGuideService {
 		tourGuideService.tracker.stopTracking();
 
 		assertEquals(gpsUtil.getAttractions().size(), attractions.size());
+	}
+	
+	@Test
+	public void getFiveNearAttractions() throws InterruptedException, ExecutionException {
+		GpsUtil gpsUtil = new GpsUtil();
+		RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());
+		InternalTestHelper.setInternalUserNumber(0);
+		TourGuideService tourGuideService = new TourGuideService(gpsUtil, rewardsService);
+
+		User user = new User(UUID.randomUUID(), "jon", "000", "jon@tourGuide.com");
+		CompletableFuture<VisitedLocation> visitedLocationFuture = tourGuideService.trackUserLocation(user);
+		
+		VisitedLocation visitedLocation = visitedLocationFuture.get();
+		List<Map<String, Object>> attractions = tourGuideService.getFiveNearAttractions(visitedLocation, user);
+
+		tourGuideService.tracker.stopTracking();
+
+		assertEquals(5, attractions.size());
+		for (Map<String, Object> attraction : attractions) {
+		    assertNotNull(attraction.get("attractionName"));
+		    assertNotNull(attraction.get("attractionLat"));
+		    assertNotNull(attraction.get("attractionLong"));
+		    assertNotNull(attraction.get("userLatitude"));
+		    assertNotNull(attraction.get("userLongitude"));
+		    assertNotNull(attraction.get("distanceMiles"));
+		    assertNotNull(attraction.get("rewardPoints"));
+		}
+
 	}
 
 	@Test
