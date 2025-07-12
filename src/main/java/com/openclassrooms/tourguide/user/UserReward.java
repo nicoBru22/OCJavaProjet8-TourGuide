@@ -10,13 +10,12 @@ import lombok.Setter;
 /**
  * Représente une récompense attribuée à un utilisateur,
  * associant un lieu visité à une attraction et un nombre de points de récompense.
- * <p>
+ * 
  * Cette classe possède deux constructeurs générés automatiquement :
  * <ul>
  *   <li>Un constructeur avec les champs finals {@code visitedLocation} et {@code attraction} (via {@link RequiredArgsConstructor})</li>
  *   <li>Un constructeur avec tous les champs : {@code visitedLocation}, {@code attraction} et {@code rewardPoints} (via {@link AllArgsConstructor})</li>
  * </ul>
- * </p>
  */
 @AllArgsConstructor
 @RequiredArgsConstructor

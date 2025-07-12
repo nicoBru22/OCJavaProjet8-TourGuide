@@ -25,8 +25,6 @@ import lombok.Setter;
  *   <li>Nombre d'adultes : 1</li>
  *   <li>Nombre d'enfants : 0</li>
  * </ul>
- * 
- * @author 
  */
 @Getter
 @Setter

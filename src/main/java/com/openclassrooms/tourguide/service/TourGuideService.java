@@ -29,262 +29,282 @@ import gpsUtil.location.VisitedLocation;
 import tripPricer.Provider;
 import tripPricer.TripPricer;
 
+/**
+ * Service principal de l'application TourGuide.
+ * <p>
+ * Ce service gère la localisation des utilisateurs, le calcul des récompenses,
+ * la récupération des attractions proches, ainsi que les offres de voyages.
+ * </p>
+ * <p>
+ * Il fonctionne en mode asynchrone pour suivre les utilisateurs et interagit avec les services
+ * externes GPS et TripPricer.
+ * </p>
+ */
 @Service
 public class TourGuideService {
-	
+
+	/**
+	 * Logger utilisé pour enregistrer les événements et messages de débogage du service.
+	 */
 	private static final Logger logger = LogManager.getLogger();
+
+	/**
+	 * Service GPS permettant de récupérer les localisations et les attractions.
+	 */
 	private final GpsUtil gpsUtil;
+
+	/**
+	 * Service chargé de gérer le calcul et l'ajout des récompenses utilisateur.
+	 */
 	private final RewardsService rewardsService;
+
+	/**
+	 * Service utilisé pour obtenir des prix de voyage auprès d'un fournisseur tiers.
+	 */
 	private final TripPricer tripPricer = new TripPricer();
+
+	/**
+	 * Composant responsable du suivi périodique de la localisation des utilisateurs.
+	 */
 	public final Tracker tracker;
-	boolean testMode = true;
+
+	/**
+	 * Indicateur permettant d'exécuter le service en mode test avec des utilisateurs simulés.
+	 */
+	private boolean testMode = true;
+
+	/**
+	 * Exécuteur de tâches asynchrones utilisant un pool fixe de 100 threads.
+	 */
 	private final ExecutorService executorService = Executors.newFixedThreadPool(100);
+
+	/**
+	 * Clé API utilisée pour interroger le fournisseur de prix de voyage TripPricer.
+	 */
 	private static final String tripPricerApiKey = "test-server-api-key";
-    private final Map<String, User> internalUserMap = new HashMap<>();
-    private final InternalTestUserInitializer internalTestUserInitializer = new InternalTestUserInitializer();
+
+	/**
+	 * Dictionnaire interne des utilisateurs indexés par nom d'utilisateur.
+	 */
+	private final Map<String, User> internalUserMap = new HashMap<>();
+
+	/**
+	 * Composant chargé d'initialiser les utilisateurs fictifs lors de l'exécution en mode test.
+	 */
+	private final InternalTestUserInitializer internalTestUserInitializer = new InternalTestUserInitializer();
+
 
     /**
-     * Constructeur de la classe TourGuideService.
-     * 
-     * Initialise les services GPS et de récompenses, configure la locale par défaut à US,
-     * initialise les utilisateurs de test si le mode test est activé,
-     * démarre le tracker et ajoute un hook d'arrêt pour stopper le tracking proprement à la fermeture de l'application.
-     * 
-     * @param gpsUtil le service GPS utilisé pour récupérer les attractions et localisations
-     * @param rewardsService le service de gestion des récompenses
+     * Constructeur du service TourGuide.
+     * <p>
+     * Initialise les services GPS, de récompenses, configure la locale par défaut,
+     * initialise les utilisateurs internes en mode test,
+     * et démarre le tracker de localisation utilisateur.
+     * </p>
+     *
+     * @param gpsUtil        le service GPS permettant d'accéder aux attractions et localisations
+     * @param rewardsService le service de gestion des récompenses utilisateur
      */
-	public TourGuideService(GpsUtil gpsUtil, RewardsService rewardsService) {
-		this.gpsUtil = gpsUtil;
-		this.rewardsService = rewardsService;
-		
-		Locale.setDefault(Locale.US);
+    public TourGuideService(GpsUtil gpsUtil, RewardsService rewardsService) {
+        this.gpsUtil = gpsUtil;
+        this.rewardsService = rewardsService;
 
-		if (testMode) {
-			logger.info("TestMode enabled");
-			logger.debug("Initializing users");
-			internalUserMap.putAll(internalTestUserInitializer.initializeUsers(InternalTestHelper.getInternalUserNumber()));
-			logger.debug("Finished initializing users");
-		}
-		tracker = new Tracker(this);
-		addShutDownHook();
-	}
+        Locale.setDefault(Locale.US);
 
-	/**
-	 * Retourne la liste des récompenses obtenues par l'utilisateur.
-	 *
-	 * @param user l'utilisateur dont on souhaite obtenir les récompenses
-	 * @return la liste des UserReward associés à l'utilisateur
-	 */
-	public List<UserReward> getUserRewards(User user) {
-		List<UserReward> listUserReward = user.getUserRewards();
-		logger.info("La liste des récompenses de l'utilisateur : {}", listUserReward);
-		return listUserReward;
-	}
+        if (testMode) {
+            logger.info("Mode test activé");
+            logger.debug("Initialisation des utilisateurs internes");
+            internalUserMap.putAll(internalTestUserInitializer.initializeUsers(InternalTestHelper.getInternalUserNumber()));
+            logger.debug("Initialisation terminée");
+        }
+        tracker = new Tracker(this);
+        addShutDownHook();
+    }
 
-	/**
-	 * Récupère la dernière localisation visitée de l'utilisateur.
-	 * Si l'utilisateur n'a pas encore de localisation enregistrée,
-	 * lance un suivi asynchrone pour récupérer la localisation actuelle et attend le résultat.
-	 *
-	 * @param user l'utilisateur dont on souhaite obtenir la localisation
-	 * @return la dernière VisitedLocation connue de l'utilisateur
-	 * @throws InterruptedException si l'attente du résultat asynchrone est interrompue
-	 * @throws ExecutionException si le calcul asynchrone échoue
-	 */
-	public VisitedLocation getUserLocation(User user) throws InterruptedException, ExecutionException {
-	    VisitedLocation visitedLocation;
-	    if (user.getVisitedLocations().size() > 0) {
-	        visitedLocation = user.getLastVisitedLocation();
-	    } else {
-	        visitedLocation = trackUserLocation(user).get();
-	    }
-	    return visitedLocation;
-	}
+    /**
+     * Récupère la liste des récompenses de l'utilisateur.
+     *
+     * @param user utilisateur ciblé
+     * @return liste des {@link UserReward} associés à l'utilisateur
+     */
+    public List<UserReward> getUserRewards(User user) {
+        List<UserReward> listUserReward = user.getUserRewards();
+        logger.info("Récompenses récupérées pour l'utilisateur : {}", listUserReward);
+        return listUserReward;
+    }
 
+    /**
+     * Obtient la dernière localisation visitée de l'utilisateur.
+     * <p>
+     * Si aucune localisation n'est enregistrée, effectue un suivi asynchrone pour récupérer
+     * la position actuelle.
+     * </p>
+     *
+     * @param user utilisateur dont on souhaite connaître la localisation
+     * @return dernière localisation visitée ({@link VisitedLocation})
+     * @throws InterruptedException si l'attente asynchrone est interrompue
+     * @throws ExecutionException   si le calcul asynchrone échoue
+     */
+    public VisitedLocation getUserLocation(User user) throws InterruptedException, ExecutionException {
+        VisitedLocation visitedLocation;
+        if (user.getVisitedLocations().size() > 0) {
+            visitedLocation = user.getLastVisitedLocation();
+        } else {
+            visitedLocation = trackUserLocation(user).get();
+        }
+        return visitedLocation;
+    }
 
-	/**
-	 * Récupère un utilisateur à partir de son nom d'utilisateur.
-	 *
-	 * @param userName Le nom d'utilisateur recherché.
-	 * @return L'objet {@link user} correspondant au nom d'utilisateur, ou {@code null} si aucun utilisateur trouvé.
-	 */
-	public User getUser(String userName) {
-		User user = internalUserMap.get(userName);
-		logger.info("L'utilisateur : {}", user);
-		return user;
-	}
+    /**
+     * Recherche un utilisateur par son nom d'utilisateur.
+     *
+     * @param userName nom de l'utilisateur recherché
+     * @return objet {@link User} correspondant, ou {@code null} si non trouvé
+     */
+    public User getUser(String userName) {
+        User user = internalUserMap.get(userName);
+        logger.info("Utilisateur récupéré : {}", user);
+        return user;
+    }
 
-	/**
-	 * Récupère la liste de tous les utilisateurs présents dans la map interne.
-	 *
-	 * @return Une liste contenant tous les objets {@link User}.
-	 */
-	public List<User> getAllUsers() {
-		List<User> userList = internalUserMap.values().stream()
-				.collect(Collectors.toList());
-		logger.info("la liste de tous le sutilisateurs : {}", userList);
-		return userList;
-	}
+    /**
+     * Récupère la liste de tous les utilisateurs connus.
+     *
+     * @return liste de tous les {@link User}
+     */
+    public List<User> getAllUsers() {
+        List<User> userList = internalUserMap.values().stream()
+                .collect(Collectors.toList());
+        logger.info("Liste de tous les utilisateurs : {}", userList);
+        return userList;
+    }
 
-	/**
-	 * Ajoute un nouvel utilisateur à la map interne s'il n'existe pas déjà.
-	 *
-	 * @param user L'objet {@link User} à ajouter.
-	 */
-	public void addUser(User user) {
-		if (!internalUserMap.containsKey(user.getUserName())) {
-			internalUserMap.put(user.getUserName(), user);
-		}
-	}
+    /**
+     * Ajoute un nouvel utilisateur à la collection interne s'il n'existe pas déjà.
+     *
+     * @param user utilisateur à ajouter
+     */
+    public void addUser(User user) {
+        if (!internalUserMap.containsKey(user.getUserName())) {
+            internalUserMap.put(user.getUserName(), user);
+        }
+    }
 
-	/**
-	 * Récupère une liste de propositions de voyages (deals) adaptées à l'utilisateur.
-	 * <p>
-	 * Cette méthode calcule d'abord le total des points de récompense accumulés par l'utilisateur,
-	 * puis utilise ces points ainsi que les préférences de l'utilisateur pour obtenir des offres
-	 * de voyage auprès du service {@code tripPricer}.
-	 * Les offres reçues sont ensuite associées à l'utilisateur via {@code user.setTripDeals}.
-	 * </p>
-	 *
-	 * @param user L'utilisateur pour lequel on souhaite récupérer les offres de voyage.
-	 * @return Une liste de {@link Provider} représentant les offres de voyages disponibles.
-	 */
-	public List<Provider> getTripDeals(User user) {
-		int cumulatativeRewardPoints = user.getUserRewards().stream()
-				.mapToInt(i -> i.getRewardPoints())
-				.sum();
-		
-		List<Provider> providers = tripPricer.getPrice(tripPricerApiKey, user.getUserId(),
-				user.getUserPreferences().getNumberOfAdults(), user.getUserPreferences().getNumberOfChildren(),
-				user.getUserPreferences().getTripDuration(), cumulatativeRewardPoints);
-		user.setTripDeals(providers);
-		
-		return providers;
-	}
+    /**
+     * Récupère les offres de voyages disponibles adaptées à l'utilisateur.
+     * <p>
+     * Le cumul des points de récompense est calculé et utilisé pour obtenir des offres auprès du service TripPricer.
+     * </p>
+     *
+     * @param user utilisateur ciblé
+     * @return liste des {@link Provider} représentant les offres de voyages
+     */
+    public List<Provider> getTripDeals(User user) {
+        int cumulativeRewardPoints = user.getUserRewards().stream()
+                .mapToInt(UserReward::getRewardPoints)
+                .sum();
 
-	/**
-	 * Suit la localisation d'un utilisateur de façon asynchrone.
-	 * <p>
-	 * Cette méthode effectue les étapes suivantes de manière non bloquante :
-	 * <ul>
-	 *   <li>Récupère la localisation actuelle de l'utilisateur via {@code gpsUtil.getUserLocation}.</li>
-	 *   <li>Ajoute cette localisation à la liste des lieux visités de l'utilisateur.</li>
-	 *   <li>Calcule les récompenses associées à cette localisation en appelant
-	 *       {@code rewardsService.calculateRewardsAsync}.</li>
-	 * </ul>
-	 * </p>
-	 * <p>
-	 * Le résultat retourné est un {@link CompletableFuture} contenant la localisation visitée
-	 * une fois toutes ces opérations terminées.
-	 * </p>
-	 *
-	 * @param user L'utilisateur dont on veut suivre la localisation.
-	 * @return Un {@code CompletableFuture<VisitedLocation>} représentant la localisation suivie,
-	 *         complété après ajout aux lieux visités et calcul des récompenses.
-	 */
-	public CompletableFuture<VisitedLocation> trackUserLocation(User user) {
-	    CompletableFuture<VisitedLocation> futureVisitedLocation = CompletableFuture.supplyAsync(() -> {
-	        return gpsUtil.getUserLocation(user.getUserId());
-	    }, executorService);
-	    
-	    CompletableFuture<VisitedLocation> visitedLocationToAdd = futureVisitedLocation.thenApply(visitedLocation -> {
-	        user.addToVisitedLocations(visitedLocation);
-	        return visitedLocation;
-	    });
-	    
-	    CompletableFuture<VisitedLocation> result = visitedLocationToAdd.thenCompose(visitedLocation ->
-	        rewardsService.calculateRewardsAsync(user)  // méthode déjà asynchrone qui renvoie CompletableFuture<Void>
-	        .thenApply(v -> visitedLocation)         // on retourne visitedLocation après calcul des récompenses
-		);
-	    
-	    return result;
-	}
+        List<Provider> providers = tripPricer.getPrice(tripPricerApiKey, user.getUserId(),
+                user.getUserPreferences().getNumberOfAdults(), user.getUserPreferences().getNumberOfChildren(),
+                user.getUserPreferences().getTripDuration(), cumulativeRewardPoints);
+        user.setTripDeals(providers);
 
+        return providers;
+    }
 
-	/**
-	 * Retourne la liste des attractions triées par distance croissante
-	 * par rapport à la position donnée d'un utilisateur.
-	 *
-	 * @param visitedLocation la localisation visitée de l'utilisateur (latitude et longitude)
-	 * @return une liste d'objets Attraction triée du plus proche au plus éloigné par rapport à la localisation de l'utilisateur
-	 */
-	public List<Attraction> getNearByAttractions(VisitedLocation visitedLocation) {
-		List<Attraction> listAllAttraction = gpsUtil.getAttractions();
-		List<Attraction> listNearByAttraction = listAllAttraction.parallelStream()
-				.sorted(Comparator.comparingDouble(attraction -> rewardsService.getDistance(attraction, visitedLocation.location)))
-	            .collect(Collectors.toList());
-		logger.info("Nombre d'attraction récupérée : {}", listNearByAttraction);
-		return listNearByAttraction;
-	}
-	
-	/**
-	 * Récupère les 5 attractions touristiques les plus proches de l'utilisateur,
-	 * en fonction de sa position actuelle, et retourne leurs informations dans une liste de maps.
-	 *
-	 * <p>Chaque élément de la liste retournée est une map contenant :
-	 * <ul>
-	 *   <li>le nom de l'attraction ({@code "attractionName"})</li>
-	 *   <li>les coordonnées de l'attraction ({@code "attractionLat"}, {@code "attractionLong"})</li>
-	 *   <li>les coordonnées de l'utilisateur ({@code "userLatitude"}, {@code "userLongitude"})</li>
-	 *   <li>la distance entre l'utilisateur et l'attraction en miles ({@code "distanceMiles"})</li>
-	 * </ul>
-	 *
-	 * @param visitedLocation la localisation actuelle de l'utilisateur (latitude et longitude)
-	 * @return une liste de 5 maps contenant les données des attractions les plus proches
-	 */
-	public List<Map<String, Object>> getFiveNearAttractions(VisitedLocation visitedLocation, User user) {
-		double userLatitude = visitedLocation.location.latitude;
-		double userLongitude = visitedLocation.location.longitude;
-	    List<Attraction> nearByAttractions = getNearByAttractions(visitedLocation);
-	    List<Attraction> fiveNearAttractions = nearByAttractions.stream()
-	            .limit(5)
-	            .collect(Collectors.toList());
-	 
-	            List<Map<String, Object>> result = new ArrayList<>();
+    /**
+     * Suit la localisation d'un utilisateur de façon asynchrone.
+     * 
+     * Cette méthode :
+     * <ul>
+     *     <li>récupère la localisation actuelle via le service GPS,</li>
+     *     <li>ajoute cette localisation à l'historique de l'utilisateur,</li>
+     *     <li>calcule les récompenses associées.</li>
+     * </ul>
+     *
+     * @param user utilisateur à suivre
+     * @return {@link CompletableFuture} complété avec la localisation visitée
+     */
+    public CompletableFuture<VisitedLocation> trackUserLocation(User user) {
+        CompletableFuture<VisitedLocation> futureVisitedLocation = CompletableFuture.supplyAsync(() -> gpsUtil.getUserLocation(user.getUserId()), executorService);
 
-	            for (Attraction attraction : fiveNearAttractions) {
+        CompletableFuture<VisitedLocation> visitedLocationToAdd = futureVisitedLocation.thenApply(visitedLocation -> {
+            user.addToVisitedLocations(visitedLocation);
+            return visitedLocation;
+        });
 
-	                Map<String, Object> attractionInfo = new HashMap<>();
-	                attractionInfo.put("attractionName", attraction.attractionName);
-	                attractionInfo.put("attractionLat", attraction.latitude);
-	                attractionInfo.put("attractionLong", attraction.longitude);
-	                attractionInfo.put("userLongitude", userLongitude);
-	                attractionInfo.put("userLatitude", userLatitude);
-	                
-	                double distanceMiles = rewardsService.getDistance(attraction, visitedLocation.location);
-	                attractionInfo.put("distanceMiles", distanceMiles);
-	                
-	                int rewardPoints = rewardsService.getRewardPoints(attraction, user);
-	                attractionInfo.put("rewardPoints", rewardPoints);
+        CompletableFuture<VisitedLocation> result = visitedLocationToAdd.thenCompose(visitedLocation ->
+                rewardsService.calculateRewardsAsync(user)
+                        .thenApply(v -> visitedLocation)
+        );
 
-	                result.add(attractionInfo);
-	            }
-        logger.info("Les 5 attractions proche : {}", result);
         return result;
-	}
-	
-	/**
-	 * Ajoute un hook de shutdown à la JVM.
-	 * <p>
-	 * Ce hook exécute un thread lors de l'arrêt de la JVM afin d'appeler la méthode
-	 * {@code stopTracking()} sur l'objet {@code tracker}. Cela permet d'arrêter proprement
-	 * le suivi en cours avant que l'application ne se termine.
-	 * </p>
-	 * <p>
-	 * Le hook sera déclenché lors d'un arrêt normal de l'application, comme un arrêt manuel,
-	 * un arrêt du système, ou une fermeture via un signal (ex : Ctrl+C).
-	 * </p>
-	 */
-	private void addShutDownHook() {
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			public void run() {
-				tracker.stopTracking();
-			}
-		});
-	}
-	
-	
+    }
 
+    /**
+     * Récupère toutes les attractions triées par distance croissante par rapport
+     * à une localisation donnée.
+     *
+     * @param visitedLocation localisation de référence
+     * @return liste triée des {@link Attraction} proches
+     */
+    public List<Attraction> getNearByAttractions(VisitedLocation visitedLocation) {
+        List<Attraction> allAttractions = gpsUtil.getAttractions();
+        List<Attraction> sortedAttractions = allAttractions.parallelStream()
+                .sorted(Comparator.comparingDouble(attraction -> rewardsService.getDistance(attraction, visitedLocation.location)))
+                .collect(Collectors.toList());
+        logger.info("Nombre d'attractions récupérées : {}", sortedAttractions.size());
+        return sortedAttractions;
+    }
 
+    /**
+     * Récupère les 5 attractions les plus proches de la position d'un utilisateur
+     * ainsi que des informations détaillées associées.
+     *
+     * @param visitedLocation localisation actuelle de l'utilisateur
+     * @param user            utilisateur ciblé (pour calcul des récompenses)
+     * @return liste de 5 maps contenant les informations clés des attractions proches
+     */
+    public List<Map<String, Object>> getFiveNearAttractions(VisitedLocation visitedLocation, User user) {
+        double userLatitude = visitedLocation.location.latitude;
+        double userLongitude = visitedLocation.location.longitude;
+
+        List<Attraction> nearByAttractions = getNearByAttractions(visitedLocation);
+        List<Attraction> fiveNearAttractions = nearByAttractions.stream()
+                .limit(5)
+                .collect(Collectors.toList());
+
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        for (Attraction attraction : fiveNearAttractions) {
+            Map<String, Object> attractionInfo = new HashMap<>();
+            attractionInfo.put("attractionName", attraction.attractionName);
+            attractionInfo.put("attractionLat", attraction.latitude);
+            attractionInfo.put("attractionLong", attraction.longitude);
+            attractionInfo.put("userLatitude", userLatitude);
+            attractionInfo.put("userLongitude", userLongitude);
+
+            double distanceMiles = rewardsService.getDistance(attraction, visitedLocation.location);
+            attractionInfo.put("distanceMiles", distanceMiles);
+
+            int rewardPoints = rewardsService.getRewardPoints(attraction, user);
+            attractionInfo.put("rewardPoints", rewardPoints);
+
+            result.add(attractionInfo);
+        }
+        logger.info("5 attractions proches : {}", result);
+        return result;
+    }
+
+    /**
+     * Ajoute un hook pour l'arrêt de la JVM.
+     * <p>
+     * Ce hook permet d'arrêter proprement le suivi des utilisateurs lors de
+     * la fermeture de l'application.
+     * </p>
+     */
+    private void addShutDownHook() {
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> tracker.stopTracking()));
+    }
 
 }
