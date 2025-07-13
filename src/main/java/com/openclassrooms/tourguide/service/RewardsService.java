@@ -139,10 +139,8 @@ public class RewardsService {
      * @return un CompletableFuture contenant l'ensemble des attractions proches
      */
     public Set<Attraction> findNearbyAttractions(User user) {
-
-        List<VisitedLocation> userLocations = user.getVisitedLocations();
-
-        List<Attraction> attractions = gpsUtil.getAttractions();
+        List<VisitedLocation> userLocations = new ArrayList<>(user.getVisitedLocations());
+        List<Attraction> attractions = new ArrayList<>(gpsUtil.getAttractions());
 
         Set<Attraction> setAttraction = userLocations.parallelStream()
                 .flatMap(visitedLocation -> attractions.parallelStream()
