@@ -56,15 +56,15 @@ public class TestRewardsService {
 	public void nearAllAttractions() throws InterruptedException, ExecutionException {
 		GpsUtil gpsUtil = new GpsUtil();
 		RewardsService rewardsService = new RewardsService(gpsUtil, new RewardCentral());
-		rewardsService.setProximityBuffer(Integer.MAX_VALUE); //max.value signifie que toutes les attractions sont considérée comme proche.
+		rewardsService.setProximityBuffer(Integer.MAX_VALUE);
 		
 		InternalTestHelper.setInternalUserNumber(1);
 		TourGuideService tourGuideService = new TourGuideService(gpsUtil, rewardsService);
 		
 		User user = tourGuideService.getAllUsers().get(0);
-	    // Lancer le calcul asynchrone et attendre qu'il soit fini
+
 	    CompletableFuture<Void> future = rewardsService.calculateRewardsAsync(user);
-	    future.get(); // attend la fin de l'exécution
+	    future.get();
 	    
 
 	    List<UserReward> userRewards = tourGuideService.getUserRewards(user);

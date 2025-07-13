@@ -24,6 +24,7 @@
 -version
 -windowtitle
 'tourguide 0.0.1-SNAPSHOT API'
+com.openclassrooms.tourguide.configuration
 com.openclassrooms.tourguide.controller
 com.openclassrooms.tourguide.helper
 com.openclassrooms.tourguide
@@ -84,24 +85,23 @@ com.openclassrooms.tourguide.tracker
 /home/nicolas/.m2/repository/org/apache/logging/log4j/log4j-api/2.20.0/log4j-api-2.20.0.jar = 1676697622000
 /home/nicolas/.m2/repository/org/apache/logging/log4j/log4j-core/2.20.0/log4j-core-2.20.0.jar = 1676697665000
 /home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/src/main/java = 1690978040000
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/package-search-index.js = 1752344949988
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/javadoc.sh = 1752344401393
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/search.html = 1752344950012
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/copy.svg = 1752344950019
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/allclasses-index.html = 1752344949984
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/search.js = 1752344950021
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/index.html = 1752344949971
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/allpackages-index.html = 1752344949986
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/help-doc.html = 1752344950017
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/index-all.html = 1752344950011
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/script.js = 1752344950019
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/tag-search-index.js = 1752344949989
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/member-search-index.js = 1752344949989
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/element-list = 1752344949900
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/overview-tree.html = 1752344949969
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/stylesheet.css = 1752344950018
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/search-page.js = 1752344950022
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/overview-summary.html = 1752344950013
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/link.svg = 1752344950019
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/module-search-index.js = 1752344949988
-/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/type-search-index.js = 1752344949988
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/package-search-index.js = 1752430354361
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/search.html = 1752430354381
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/copy.svg = 1752430354387
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/allclasses-index.html = 1752430354359
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/search.js = 1752430354394
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/index.html = 1752430354345
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/allpackages-index.html = 1752430354361
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/help-doc.html = 1752430354385
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/index-all.html = 1752430354380
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/script.js = 1752430354387
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/tag-search-index.js = 1752430354362
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/member-search-index.js = 1752430354362
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/element-list = 1752430354263
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/overview-tree.html = 1752430354343
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/stylesheet.css = 1752430354387
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/search-page.js = 1752430354395
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/overview-summary.html = 1752430354382
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/link.svg = 1752430354388
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/module-search-index.js = 1752430354361
+/home/nicolas/Documents/OpenClassroom - Java/Projet8-Améliorer appli avec systeme distribué/TourGuide/target/site/apidocs/type-search-index.js = 1752430354361

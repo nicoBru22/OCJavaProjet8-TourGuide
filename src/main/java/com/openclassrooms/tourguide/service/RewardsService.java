@@ -133,10 +133,13 @@ public class RewardsService {
     }
 
     /**
-     * Recherche asynchrone des attractions proches des localisations visitées par un utilisateur.
+     * Recherche de manière parallèle les attractions proches des lieux visités par l'utilisateur.
      * 
-     * @param user utilisateur dont on veut trouver les attractions proches
-     * @return un CompletableFuture contenant l'ensemble des attractions proches
+     * Cette méthode compare toutes les attractions connues avec les localisations visitées par l'utilisateur,
+     * et retourne celles qui sont géographiquement proches selon la méthode {@code nearAttraction}.
+     *
+     * @param user l'utilisateur dont on veut identifier les attractions à proximité
+     * @return un ensemble d'attractions proches (potentiellement à récompenser)
      */
     public Set<Attraction> filterNearbyAttractions(User user) {
         List<VisitedLocation> userLocations = new ArrayList<>(user.getVisitedLocations());
@@ -150,6 +153,12 @@ public class RewardsService {
         return setAttraction;
     }
     
+    /**
+     * Récupère les noms des attractions pour lesquelles l'utilisateur a déjà reçu une récompense.
+     *
+     * @param user l'utilisateur concerné
+     * @return un ensemble de noms d'attractions déjà récompensées
+     */
     private Set<String> rewardedAttraction(User user) {
         Set<String> rewardedAttractions = user.getUserRewards().stream()
                 .map(r -> r.attraction.attractionName)
@@ -158,11 +167,11 @@ public class RewardsService {
     }
     
     /**
-     * Filtre les attractions proches en excluant celles déjà récompensées.
+     * Filtre les attractions proches en excluant celles déjà récompensées pour l'utilisateur.
      *
-     * @param nearbyAttractions les attractions proches
-     * @param rewardedAttractions les noms des attractions déjà récompensées
-     * @return un ensemble d'attractions à récompenser
+     * @param nearbyAttractions les attractions proches de l'utilisateur
+     * @param rewardedAttractions les noms des attractions pour lesquelles l'utilisateur a déjà reçu une récompense
+     * @return un ensemble d'attractions proches non encore récompensées
      */
     private Set<Attraction> filterUnrewardedAttractions(Set<Attraction> nearbyAttractions, Set<String> rewardedAttractions) {
     	Set<Attraction> unrewardedAttraction = nearbyAttractions.parallelStream()
@@ -173,9 +182,12 @@ public class RewardsService {
 
     /**
      * Ajoute des récompenses à l'utilisateur pour les attractions proches non encore récompensées.
-     * 
-     * @param user utilisateur auquel ajouter les récompenses
-     * @param nearbyAttractions ensemble des attractions proches
+     *
+     * Cette méthode vérifie pour chaque attraction proche si l'utilisateur s'en est approché,
+     * puis calcule les points de récompense et les ajoute de façon thread-safe à l'utilisateur.
+     *
+     * @param user l'utilisateur auquel attribuer des récompenses
+     * @param nearbyAttractions ensemble des attractions proches à examiner
      */
     public void addRewards(User user, Set<Attraction> nearbyAttractions) {
         List<VisitedLocation> visitedLocations = new ArrayList<>(user.getVisitedLocations());
@@ -197,10 +209,14 @@ public class RewardsService {
 
 
     /**
-     * Calcule asynchronement les récompenses pour un utilisateur.
+     * Lance de manière asynchrone le calcul des récompenses pour un utilisateur.
      *
-     * @param user utilisateur
-     * @return un CompletableFuture indiquant la fin
+     * Cette méthode utilise un {@link CompletableFuture} pour rechercher les attractions proches
+     * en parallèle, puis appelle {@code addRewards} pour traiter les récompenses, 
+     * le tout en s'appuyant sur un {@code ExecutorService}.
+     *
+     * @param user l'utilisateur dont les récompenses doivent être calculées
+     * @return un {@code CompletableFuture<Void>} indiquant la fin du traitement asynchrone
      */
     public CompletableFuture<Void> calculateRewardsAsync(User user) {
         return CompletableFuture

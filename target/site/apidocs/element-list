@@ -1,4 +1,5 @@
 com.openclassrooms.tourguide
+com.openclassrooms.tourguide.configuration
 com.openclassrooms.tourguide.controller
 com.openclassrooms.tourguide.helper
 com.openclassrooms.tourguide.service
