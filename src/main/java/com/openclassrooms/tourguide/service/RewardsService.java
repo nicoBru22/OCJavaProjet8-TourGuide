@@ -138,7 +138,7 @@ public class RewardsService {
      * @param user utilisateur dont on veut trouver les attractions proches
      * @return un CompletableFuture contenant l'ensemble des attractions proches
      */
-    public Set<Attraction> findNearbyAttractions(User user) {
+    public Set<Attraction> filterNearbyAttractions(User user) {
         List<VisitedLocation> userLocations = new ArrayList<>(user.getVisitedLocations());
         List<Attraction> attractions = new ArrayList<>(gpsUtil.getAttractions());
 
@@ -149,7 +149,27 @@ public class RewardsService {
 
         return setAttraction;
     }
-
+    
+    private Set<String> rewardedAttraction(User user) {
+        Set<String> rewardedAttractions = user.getUserRewards().stream()
+                .map(r -> r.attraction.attractionName)
+                .collect(Collectors.toSet());
+		return rewardedAttractions;
+    }
+    
+    /**
+     * Filtre les attractions proches en excluant celles déjà récompensées.
+     *
+     * @param nearbyAttractions les attractions proches
+     * @param rewardedAttractions les noms des attractions déjà récompensées
+     * @return un ensemble d'attractions à récompenser
+     */
+    private Set<Attraction> filterUnrewardedAttractions(Set<Attraction> nearbyAttractions, Set<String> rewardedAttractions) {
+    	Set<Attraction> unrewardedAttraction = nearbyAttractions.parallelStream()
+                .filter(attraction -> !rewardedAttractions.contains(attraction.attractionName))
+                .collect(Collectors.toSet());
+        return unrewardedAttraction;
+    }
 
     /**
      * Ajoute des récompenses à l'utilisateur pour les attractions proches non encore récompensées.
@@ -158,35 +178,36 @@ public class RewardsService {
      * @param nearbyAttractions ensemble des attractions proches
      */
     public void addRewards(User user, Set<Attraction> nearbyAttractions) {
-        Set<String> rewardedAttractions = user.getUserRewards().stream()
-                .map(r -> r.attraction.attractionName)
-                .collect(Collectors.toSet());
-
         List<VisitedLocation> visitedLocations = new ArrayList<>(user.getVisitedLocations());
+        Set<String> rewardedAttractions = rewardedAttraction(user);        
 
-        nearbyAttractions.parallelStream()
-            .filter(attraction -> !rewardedAttractions.contains(attraction.attractionName))
-            .forEach(attraction -> {
-                VisitedLocation location = visitedLocations.get(0); // à optimiser si trop basique
-                int points = getRewardPoints(attraction, user);
+        Set<Attraction> filteredAttractions = filterUnrewardedAttractions(nearbyAttractions, rewardedAttractions);
 
-                synchronized (user.getUserRewards()) {
-                    user.addUserReward(new UserReward(location, attraction, points));
-                }
-            });
+        filteredAttractions.forEach(attraction -> {
+            visitedLocations.stream()
+                .filter(location -> nearAttraction(location, attraction))
+                .forEach(location -> {
+                    int points = getRewardPoints(attraction, user);
+                    synchronized (user.getUserRewards()) {
+                        user.addUserReward(new UserReward(location, attraction, points));
+                    }
+                });
+        });
     }
+
 
     /**
      * Calcule asynchronement les récompenses pour un utilisateur.
-     * 
+     *
      * @param user utilisateur
      * @return un CompletableFuture indiquant la fin
      */
     public CompletableFuture<Void> calculateRewardsAsync(User user) {
         return CompletableFuture
-            .supplyAsync(() -> findNearbyAttractions(user), executorService)
+            .supplyAsync(() -> filterNearbyAttractions(user), executorService)
             .thenAcceptAsync(nearbyAttractions -> addRewards(user, nearbyAttractions), executorService);
     }
+
 
 
     /**
