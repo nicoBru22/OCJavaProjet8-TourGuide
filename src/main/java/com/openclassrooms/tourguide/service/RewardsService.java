@@ -1,11 +1,12 @@
 package com.openclassrooms.tourguide.service;
 
-import java.util.HashSet;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
@@ -64,14 +65,9 @@ public class RewardsService {
     private final RewardCentral rewardsCentral;
 
     /**
-     * Nombre de cœurs processeur pour dimensionner le pool de threads.
-     */
-    int cores = Runtime.getRuntime().availableProcessors();
-
-    /**
      * Pool de threads pour l'exécution asynchrone des tâches.
      */
-    private final ExecutorService executorService = Executors.newFixedThreadPool(cores * 2);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(100);
 
     /**
      * Constructeur initialisant les dépendances du service.
@@ -142,57 +138,58 @@ public class RewardsService {
      * @param user utilisateur dont on veut trouver les attractions proches
      * @return un CompletableFuture contenant l'ensemble des attractions proches
      */
-    public CompletableFuture<Set<Attraction>> findNearbyAttractionsAsync(User user) {
-        return CompletableFuture.supplyAsync(() -> {
-            List<VisitedLocation> userLocations = user.getVisitedLocations();
-            List<Attraction> attractions = gpsUtil.getAttractions();
-            Set<Attraction> nearbyAttractions = new HashSet<>();
+    public Set<Attraction> findNearbyAttractions(User user) {
 
-            for (VisitedLocation visitedLocation : userLocations) {
-                for (Attraction attraction : attractions) {
-                    if (nearAttraction(visitedLocation, attraction)) {
-                        nearbyAttractions.add(attraction);
-                    }
-                }
-            }
-            return nearbyAttractions;
-        }, executorService);
+        List<VisitedLocation> userLocations = user.getVisitedLocations();
+
+        List<Attraction> attractions = gpsUtil.getAttractions();
+
+        Set<Attraction> setAttraction = userLocations.parallelStream()
+                .flatMap(visitedLocation -> attractions.parallelStream()
+                        .filter(attraction -> nearAttraction(visitedLocation, attraction)))
+                .collect(Collectors.toSet());
+
+        return setAttraction;
     }
 
+
     /**
-     * Ajoute des récompenses à l'utilisateur pour les attractions proches qui n'ont
-     * pas encore été récompensées.
+     * Ajoute des récompenses à l'utilisateur pour les attractions proches non encore récompensées.
      * 
      * @param user utilisateur auquel ajouter les récompenses
      * @param nearbyAttractions ensemble des attractions proches
      */
     public void addRewards(User user, Set<Attraction> nearbyAttractions) {
-        synchronized (user.getUserRewards()) {
-            for (Attraction attraction : nearbyAttractions) {
-                boolean alreadyRewarded = user.getUserRewards().stream()
-                        .anyMatch(r -> r.attraction.attractionName.equals(attraction.attractionName));
-                if (!alreadyRewarded) {
-                    VisitedLocation location = user.getVisitedLocations().get(0);
-                    user.addUserReward(new UserReward(location, attraction, getRewardPoints(attraction, user)));
+        Set<String> rewardedAttractions = user.getUserRewards().stream()
+                .map(r -> r.attraction.attractionName)
+                .collect(Collectors.toSet());
+
+        List<VisitedLocation> visitedLocations = new ArrayList<>(user.getVisitedLocations());
+
+        nearbyAttractions.parallelStream()
+            .filter(attraction -> !rewardedAttractions.contains(attraction.attractionName))
+            .forEach(attraction -> {
+                VisitedLocation location = visitedLocations.get(0); // à optimiser si trop basique
+                int points = getRewardPoints(attraction, user);
+
+                synchronized (user.getUserRewards()) {
+                    user.addUserReward(new UserReward(location, attraction, points));
                 }
-            }
-        }
+            });
     }
 
     /**
-     * Calcule asynchronement les récompenses pour un utilisateur en trouvant
-     * les attractions proches et en les ajoutant à ses récompenses.
+     * Calcule asynchronement les récompenses pour un utilisateur.
      * 
-     * @param user utilisateur pour lequel calculer les récompenses
-     * @return un CompletableFuture indiquant la fin du calcul
+     * @param user utilisateur
+     * @return un CompletableFuture indiquant la fin
      */
     public CompletableFuture<Void> calculateRewardsAsync(User user) {
-        CompletableFuture<Set<Attraction>> nearbyAttractionsFuture = findNearbyAttractionsAsync(user);
-
-        return nearbyAttractionsFuture.thenAcceptAsync(
-                nearbyAttractions -> addRewards(user, nearbyAttractions),
-                executorService);
+        return CompletableFuture
+            .supplyAsync(() -> findNearbyAttractions(user), executorService)
+            .thenAcceptAsync(nearbyAttractions -> addRewards(user, nearbyAttractions), executorService);
     }
+
 
     /**
      * Calcule la distance en miles terrestres entre deux localisations GPS.
